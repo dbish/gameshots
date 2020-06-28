@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="jumbotron">
+        <h1 class="display-4">gameshots.gg</h1>
+        <p class="lead">The screenshot sharing network for gamers!</p>
+        <hr class="my-4">
+        <p>Whether you just fought your way through a boss, sailed across the seas for some treasure, or just found a great view in your digital world, share those screenshots with your friends, just like you might share a vacation photo on your insta.</p>
+	<a href="{{url_for('login')}}">
+		Sign In - Twitch	
+        </a>
+</div>
+<div>
+        <div class="row info bord">
+                <div class="col">
+                        <h2>Create Your Gaming Profile</h2>
+			<p>Not only do you create an account, but you get to create a sub-account for each of your games or characters. This way followers who love your serene Sea of Thieves shots can follow your pirate alter-ego, while your friends from Fortnite can choose to just keep up with your action shots.</p>
+                </div>
+                <div class="col">
+                        <img src="{{url_for('static', filename='profile.png')}}" class="img-fluid">
+                </div>
+        </div>
+        <div class="row info bord">
+                <div class="col">
+                        <img src="{{url_for('static', filename='screenshot.png')}}" class="img-fluid">
+                </div>
+                <div class="col">
+                        <h2>Upload Your Screenshots</h2>
+                        <p>Take your screenshot in any of your favorite games and upload them here. Once uploaded you can add game info, note a memory from this awesome gaming session, tag friends you were questing with, and add to your growing virtual photo collection.</p>
+                </div>
+        </div>
+        <div class="row info">
+                <div class="col">
+                        <h2>Find & Follow</h2>
+                        <p>
+			Follow games you love, or find your friends and their characters to keep a steady feed of artistic shots and in-game memories.
+                        </p>
+                </div>
+                <div class="col">
+                        <img src="{{url_for('static', filename='feed.png')}}" class="img-fluid">
+                </div>
+        </div>
+</div>
+
+{% endblock %}
+~
+

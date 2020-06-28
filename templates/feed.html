@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
+<div class="container">
+	<div>
+		<h2 class="text-light text-center">{{screen_name}}</h2>
+	</div>
+	{% for post in posts %}
+		<div class="card">
+			<div class="card-header">
+				{{post.username}} <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				<div class="coins">{{post.coins}} <i class="fa fa-coins"></i></div>
+			</div>
+			<img src="{{post.image}}" class="card-img-top">
+			<div class="card-body">
+				<button class="btn">+1</button> 
+				<button class="btn"><i class="fa fa-star"></i></button> 
+				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
+				<p class="card-text text-light bg-dark rounded">{{post.time}}/>{{post.editorial}}</p>
+			</div>
+			<div class="card-body">
+				<input class="commentbox" class="form-control" placeholder="enter comment...">
+			</div>
+		</div>
+	{% endfor %}
+</div>
+{% endblock %}
