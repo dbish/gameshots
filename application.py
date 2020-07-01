@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, jsonify, session, flash
+from flask import Flask, render_template, redirect, url_for, jsonify, session, flash, request
 import boto3
 import os
 import collections
@@ -8,6 +8,7 @@ from six.moves.urllib.parse import urlencode
 import constants
 from werkzeug.exceptions import HTTPException
 from functools import wraps
+import pymysql
 
 AUTH0_CALLBACK_URL = constants.AUTH0_CALLBACK_URL
 AUTH0_CLIENT_ID = constants.AUTH0_CLIENT_ID
@@ -26,6 +27,10 @@ application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
 Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time'])
+
+UPLOAD_FOLDER = "/tmp"
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 
 
 @app.errorhandler(Exception)
@@ -53,6 +58,10 @@ aws_session = boto3.Session(
     aws_access_key_id = constants.AWS_PUBLIC_KEY,
     aws_secret_access_key = constants.AWS_SERVER_SECRET_KEY
 )
+
+
+rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+rds_con.autocommit(True)
 
 def getUserInfo(username, email):
     dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
@@ -85,6 +94,36 @@ def requires_auth(f):
         return f(*args, **kwargs)
 
     return decorated
+
+def createPost(user, picture):
+
+    #upload to S3 and get link
+    s3 = aws_session.resource('s3')
+    bucket = s3.Bucket('gameshots.gg')
+    bucket.upload_fileobj(picture, user+picture.filename, ExtraArgs={'ACL':'public-read'})
+    s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{user}{picture.filename}'
+    query = f"INSERT INTO POSTS (user, picture) VALUES ('{user}', '{s3_link}')"
+
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+    
+@app.route('/create', methods=['POST', 'GET'])
+@requires_auth
+def create():
+    username = session[constants.PROFILE_KEY]['name']
+    if request.method == 'POST':
+        result = request.form
+        print(request.files)
+        print(request)
+        print(result)
+        if 'file' in request.files:
+            file = request.files['file']
+            filename = file.filename
+            createPost(username, file)
+            #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('feed'))
+    return render_template('create.html')
 
 @app.route('/callback')
 def callback_handling():
@@ -127,8 +166,14 @@ def feed():
     following = getUserInfo(screen_name, email)
     print(screen_name)
     
-    posts.append(Post("bishopofcode", "Sea of Thieves", "https://s3-us-west-2.amazonaws.com/gameshots.gg/PirateLegend.png", "Finally made Pirate Legend!", 2, 'T2310PST'))
-    posts.append(Post("t-dawg", "Tera", "https://s3-us-west-2.amazonaws.com/gameshots.gg/2015-10-03_00003.jpg", "belly bros unite", 1, '6-15T1701'))
+    query = f"SELECT * FROM POSTS where user='{screen_name}'"
+
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+
+    for row in cur.fetchall():
+        posts.append(Post(row[1], 'GamePlaceholder', row[2], 'text placeholder', 42, 'T2310PST'))
     return render_template('feed.html', posts=posts, screen_name=screen_name)
 
 @app.route('/profile')

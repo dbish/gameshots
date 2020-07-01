@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
+<script src="{{url_for('static', filename='create.js')}}"></script>
+<div class="container">
+        <div>
+		<form action='{{url_for('create')}}' method="POST" enctype="multipart/form-data">
+			<p class='text-light'>Name<input type = "text" name = "Name" /></p>
+			<input type="file" id="imgInput" name='file'>
+			<img id='imgPreview' src="#" style="display:none"/>
+			<p><input type = "submit" value = "submit" /></p>
+		</form>
+        </div>
+</div>
+{% endblock %}
+
