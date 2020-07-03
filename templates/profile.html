@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
+<div class="container">
+	<div>
+		<h2 class="text-light text-center">{{username}}</h2>
+	</div>
+	<div>
+		<h3 class="text-light">games:</h3>
+		{% for game in games %}
+		<span class="badge badge-primary">{{game}}</span>
+		{% endfor %}
+	</div>
+
+	<div>
+	{% for post in posts %}
+		<div class="card">
+			<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top"></a>
+		</div>
+	{% endfor %}
+	</div>
+</div>
+{% endblock %}

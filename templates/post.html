@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
+<link rel="stylesheet" href="{{url_for('static', filename='post.css')}}">
 <div class="container">
-	{% for post in posts %}
 		<div class="card">
 			<div class="card-header">
-				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a><i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				{{post.username}} <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				<div class="coins">{{post.coins}} <i class="fa fa-coins"></i></div>
 			</div>
 			<img src="{{post.image}}" class="card-img-top">
@@ -19,6 +18,5 @@
 				<input class="commentbox" class="form-control" placeholder="enter comment...">
 			</div>
 		</div>
-	{% endfor %}
 </div>
 {% endblock %}

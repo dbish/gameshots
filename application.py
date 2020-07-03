@@ -140,6 +140,47 @@ def callback_handling():
     }
     return redirect('/feed')
 
+def getUserGames(username):
+    games = ['Sea Of Thieves', 'World of Warcraft', 'Faster Than Light']
+    return games 
+
+def getUserThumbnails(username):
+    query = f"SELECT postID, picture FROM POSTS where user='{username}'"
+    posts = []
+
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+
+    for row in cur.fetchall():
+        posts.append((row[0], row[1])) 
+
+    print(posts)
+    return posts
+
+@app.route('/gamer/<username>')
+@requires_auth
+def viewProfile(username):
+    games = getUserGames(username)
+    posts = getUserThumbnails(username)
+    print(posts)
+    return render_template('profile.html', username=username, games=games, posts=posts)
+
+@app.route('/post/<postid>')
+@requires_auth
+def viewPost(postid):
+    query = f"SELECT user, picture FROM POSTS where postid='{postid}'"
+
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+
+    info = cur.fetchone()
+    post = Post(info[0], 'GamePlaceholder', info[1], 'text placeholder', 42, 'T2310PST')
+
+    return render_template('post.html', post=post)
+
+
 
 @app.route('/login')
 def login():
