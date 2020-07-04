@@ -1,9 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 <link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
+<script src="{{url_for('static', filename='viewProfile.js')}}"></script>
 <div class="container">
 	<div>
 		<h2 class="text-light text-center">{{username}}</h2>
+		{% if username != myusername %}
+			{% if username in following %}
+				<button onclick="followUser('{{username}}')" id="followButton" type="button" class="btn btn-primary" style="display:none">follow</button>
+				<button onclick="unfollowUser('{{username}}')" id="unfollowButton" type="button" class="btn btn-primary">unfollow</button>
+			{% else %}
+				<button onclick="followUser('{{username}}')" id="followButton" type="button" class="btn btn-primary">follow</button>
+				<button onclick="unfollowUser('{{username}}')" id="unfollowButton" type="button" class="btn btn-primary" style="display:none">unfollow</button>
+			{% endif %}
+		{% endif %}
 	</div>
 	<div>
 		<h3 class="text-light">games:</h3>

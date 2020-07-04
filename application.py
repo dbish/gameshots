@@ -26,7 +26,7 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id'])
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -80,7 +80,8 @@ def getUserInfo(username, email):
         response = table.put_item(
                 Item={
                     'username':username,
-                    'email':email
+                    'email':email,
+                    'following':[]
                     }
                 )
         flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
@@ -130,13 +131,19 @@ def callback_handling():
     auth0.authorize_access_token()
     resp = auth0.get('userinfo')
     userinfo = resp.json()
+    print('user info....')
     print(userinfo)
+
+    following = getUserInfo(userinfo['name'], userinfo['email'])
+    print('inside callback')
+    print(following)
 
     session[constants.JWT_PAYLOAD] = userinfo
     session[constants.PROFILE_KEY] = {
         'user_id': userinfo['sub'],
         'name': userinfo['name'],
-        'email': userinfo['email']
+        'email': userinfo['email'], 
+        'following':following
     }
     return redirect('/feed')
 
@@ -163,8 +170,10 @@ def getUserThumbnails(username):
 def viewProfile(username):
     games = getUserGames(username)
     posts = getUserThumbnails(username)
-    print(posts)
-    return render_template('profile.html', username=username, games=games, posts=posts)
+    following = session[constants.PROFILE_KEY]['following']
+    myusername = session[constants.PROFILE_KEY]['name']
+    print(following) 
+    return render_template('profile.html', username=username, games=games, posts=posts, following=following, myusername=myusername) 
 
 @app.route('/post/<postid>')
 @requires_auth
@@ -176,7 +185,7 @@ def viewPost(postid):
         cur.execute(query)
 
     info = cur.fetchone()
-    post = Post(info[0], 'GamePlaceholder', info[1], 'text placeholder', 42, 'T2310PST')
+    post = Post(info[0], 'GamePlaceholder', info[1], 'text placeholder', 42, 'T2310PST', postid)
 
     return render_template('post.html', post=post)
 
@@ -193,6 +202,72 @@ def logout():
     params = {'returnTo': url_for('home', _external=True), 'client_id': AUTH0_CLIENT_ID}
     return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
 
+@requires_auth
+@app.route('/follow', methods=['POST'])
+def followUser():
+    username = session[constants.PROFILE_KEY]['name']
+    follow = request.form['follow']
+    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('gg_users');
+    response = table.update_item(
+            Key={'username':username},
+            UpdateExpression="SET following = list_append(following, :i)",
+            ExpressionAttributeValues={
+                ':i':[follow],
+                },
+            ReturnValues="UPDATED_NEW"
+            )
+    session[constants.PROFILE_KEY]['following'] = response['Attributes']['following']
+    print('new following')
+    print(session[constants.PROFILE_KEY]['following'])
+    #add to followers
+    session.modified = True
+    return jsonify('success')
+
+@requires_auth
+@app.route('/unfollow', methods=['POST'])
+def unfollowUser():
+    username = session[constants.PROFILE_KEY]['name']
+    unfollow = request.form['unfollow']
+    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('gg_users');
+    response = table.get_item(
+            Key={
+                'username':username
+                }
+            )
+    if 'Item' in response:
+        if 'following' in response['Item']:
+            following = response['Item']['following']
+            print(following)
+            idx = following.index(unfollow)
+            print(idx)
+
+            response = table.update_item(
+                    Key={'username':username},
+                    UpdateExpression=f"REMOVE following[{idx}]",
+                    ReturnValues="UPDATED_NEW"
+                    )
+            print('response complete')
+
+            print(response)
+            response = table.get_item(
+                    Key={
+                        'username':username
+                        }
+                    )
+
+            if 'Item' in response:
+                if 'following' in response['Item']:
+                    following = response['Item']['following']
+            session[constants.PROFILE_KEY]['following'] = following 
+            session.modified = True
+
+            #remove from followers
+            return jsonify('success')
+
+
+
 
 @app.route('/')
 def home():
@@ -204,17 +279,23 @@ def feed():
     posts = []
     screen_name = session[constants.PROFILE_KEY]['name']
     email = session[constants.PROFILE_KEY]['email']
-    following = getUserInfo(screen_name, email)
-    print(screen_name)
-    
-    query = f"SELECT * FROM POSTS where user='{screen_name}'"
+    #following = getUserInfo(screen_name, email)
+    following = session[constants.PROFILE_KEY]['following']
+    print('following, again')
+    print(following)
+    users = following+[screen_name]
+    placeholder = '%s'
+    placeholders = ', '.join(placeholder for unused in users)
+    query = f"SELECT * FROM POSTS where user in ({placeholders})"
+    print(query)
 
     with rds_con:
         cur = rds_con.cursor()
-        cur.execute(query)
+        print(users)
+        cur.execute(query, tuple(users))
 
     for row in cur.fetchall():
-        posts.append(Post(row[1], 'GamePlaceholder', row[2], 'text placeholder', 42, 'T2310PST'))
+        posts.append(Post(row[1], 'GamePlaceholder', row[2], 'text placeholder', 42, 'T2310PST', row[0]))
     return render_template('feed.html', posts=posts, screen_name=screen_name)
 
 @app.route('/profile')

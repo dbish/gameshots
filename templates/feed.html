@@ -8,7 +8,7 @@
 				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a><i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				<div class="coins">{{post.coins}} <i class="fa fa-coins"></i></div>
 			</div>
-			<img src="{{post.image}}" class="card-img-top">
+			<a href="{{url_for('viewPost', postid=post.id)}}"><img src="{{post.image}}" class="card-img-top"></a>
 			<div class="card-body">
 				<button class="btn">+1</button> 
 				<button class="btn"><i class="fa fa-star"></i></button> 
