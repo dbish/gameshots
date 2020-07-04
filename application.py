@@ -123,7 +123,7 @@ def create():
             filename = file.filename
             createPost(username, file)
             #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(url_for('feed'))
+            return redirect(url_for('home'))
     return render_template('create.html')
 
 @app.route('/callback')
