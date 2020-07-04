@@ -173,7 +173,7 @@ def viewProfile(username):
     following = session[constants.PROFILE_KEY]['following']
     myusername = session[constants.PROFILE_KEY]['name']
     print(following) 
-    return render_template('profile.html', username=username, games=games, posts=posts, following=following, myusername=myusername) 
+    return render_template('profile.html', screen_name=username, username=username, games=games, posts=posts, following=following, myusername=myusername) 
 
 @app.route('/post/<postid>')
 @requires_auth

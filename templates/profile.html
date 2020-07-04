@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
+<link rel="stylesheet" href="{{url_for('static', filename='profile.css')}}">
 <script src="{{url_for('static', filename='viewProfile.js')}}"></script>
 <div class="container">
 	<div>
-		<h2 class="text-light text-center">{{username}}</h2>
+		<h2 class="text-light text-center">{{username}}
 		{% if username != myusername %}
+			</h2>
 			{% if username in following %}
 				<button onclick="followUser('{{username}}')" id="followButton" type="button" class="btn btn-primary" style="display:none">follow</button>
 				<button onclick="unfollowUser('{{username}}')" id="unfollowButton" type="button" class="btn btn-primary">unfollow</button>
@@ -13,6 +14,9 @@
 				<button onclick="followUser('{{username}}')" id="followButton" type="button" class="btn btn-primary">follow</button>
 				<button onclick="unfollowUser('{{username}}')" id="unfollowButton" type="button" class="btn btn-primary" style="display:none">unfollow</button>
 			{% endif %}
+		{% else %}
+		<a href="{{url_for('logout')}}" class="badge badge-light badge-pill">logout</a>
+			 </h2>
 		{% endif %}
 	</div>
 	<div>
@@ -20,12 +24,13 @@
 		{% for game in games %}
 		<span class="badge badge-primary">{{game}}</span>
 		{% endfor %}
+		<hr/>
 	</div>
 
 	<div>
 	{% for post in posts %}
 		<div class="card">
-			<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top"></a>
+			<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top mx-auto"></a>
 		</div>
 	{% endfor %}
 	</div>

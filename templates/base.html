@@ -17,7 +17,7 @@
 		{% if screen_name is defined %}
 		<a href="{{url_for('create')}}" class="btn btn-outline-light">create post</a>
 		<span class="navbar-text">
-		<a href="{{url_for('logout')}}">logout</a>
+		<a href="{{url_for('viewProfile', username=screen_name)}}">profile</a>
 		</span>
 		{% endif %}
         </nav>
