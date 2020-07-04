@@ -145,7 +145,7 @@ def callback_handling():
         'email': userinfo['email'], 
         'following':following
     }
-    return redirect('/feed')
+    return redirect('/')
 
 def getUserGames(username):
     games = ['Sea Of Thieves', 'World of Warcraft', 'Faster Than Light']
@@ -271,10 +271,11 @@ def unfollowUser():
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    if constants.PROFILE_KEY not in session:
+        return render_template('index.html')
+    else:
+        return feed()
 
-@app.route('/feed')
-@requires_auth
 def feed():
     posts = []
     screen_name = session[constants.PROFILE_KEY]['name']
