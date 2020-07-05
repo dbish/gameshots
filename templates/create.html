@@ -5,9 +5,10 @@
 <div class="container">
         <div>
 		<form action='{{url_for('create')}}' method="POST" enctype="multipart/form-data">
-			<p class='text-light'>Name<input type = "text" name = "Name" /></p>
+			<p class='text-light'>Game<input type = "text" name = "game" /></p>
 			<input type="file" id="imgInput" name='file'>
 			<img id='imgPreview' src="#" style="display:none"/>
+			<p class='text-light'>commentary<input type = "text" name = "comment" /></p>
 			<p><input type = "submit" value = "submit" /></p>
 		</form>
         </div>

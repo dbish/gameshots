@@ -96,14 +96,14 @@ def requires_auth(f):
 
     return decorated
 
-def createPost(user, picture):
+def createPost(user, picture, game, info):
 
     #upload to S3 and get link
     s3 = aws_session.resource('s3')
     bucket = s3.Bucket('gameshots.gg')
     bucket.upload_fileobj(picture, user+picture.filename, ExtraArgs={'ACL':'public-read'})
     s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{user}{picture.filename}'
-    query = f"INSERT INTO POSTS (user, picture) VALUES ('{user}', '{s3_link}')"
+    query = f"INSERT INTO POSTS (user, picture, game, info) VALUES ('{user}', '{s3_link}', '{game}', '{info}')"
 
     with rds_con:
         cur = rds_con.cursor()
@@ -115,13 +115,13 @@ def create():
     username = session[constants.PROFILE_KEY]['name']
     if request.method == 'POST':
         result = request.form
-        print(request.files)
-        print(request)
         print(result)
         if 'file' in request.files:
             file = request.files['file']
+            game = request.form['game']
+            comment = request.form['comment']
             filename = file.filename
-            createPost(username, file)
+            createPost(username, file, game, comment)
             #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             return redirect(url_for('home'))
     return render_template('create.html')
@@ -148,11 +148,20 @@ def callback_handling():
     return redirect('/')
 
 def getUserGames(username):
-    games = ['Sea Of Thieves', 'World of Warcraft', 'Faster Than Light']
+    query = f"SELECT DISTINCT game FROM POSTS where user='{username}'"
+    games = []
+
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+
+    game_info = cur.fetchall()
+    games = [game[0] for game in game_info]
+
     return games 
 
 def getUserThumbnails(username):
-    query = f"SELECT postID, picture FROM POSTS where user='{username}'"
+    query = f"SELECT postID, picture FROM POSTS where user='{username}' ORDER BY createdtime DESC"
     posts = []
 
     with rds_con:
@@ -178,14 +187,14 @@ def viewProfile(username):
 @app.route('/post/<postid>')
 @requires_auth
 def viewPost(postid):
-    query = f"SELECT user, picture FROM POSTS where postid='{postid}'"
+    query = f"SELECT user, picture, game, info, createdtime FROM POSTS where postid='{postid}'"
 
     with rds_con:
         cur = rds_con.cursor()
         cur.execute(query)
 
     info = cur.fetchone()
-    post = Post(info[0], 'GamePlaceholder', info[1], 'text placeholder', 42, 'T2310PST', postid)
+    post = Post(info[0], info[2], info[1], info[3], 42, info[4], postid)
 
     return render_template('post.html', post=post)
 
@@ -287,7 +296,7 @@ def feed():
     users = following+[screen_name]
     placeholder = '%s'
     placeholders = ', '.join(placeholder for unused in users)
-    query = f"SELECT * FROM POSTS where user in ({placeholders})"
+    query = f"SELECT * FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
     print(query)
 
     with rds_con:
@@ -296,7 +305,7 @@ def feed():
         cur.execute(query, tuple(users))
 
     for row in cur.fetchall():
-        posts.append(Post(row[1], 'GamePlaceholder', row[2], 'text placeholder', 42, 'T2310PST', row[0]))
+        posts.append(Post(row[1], row[3], row[2], row[4], 42, row[5], row[0]))
     return render_template('feed.html', posts=posts, screen_name=screen_name)
 
 @app.route('/profile')

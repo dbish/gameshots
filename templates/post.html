@@ -4,7 +4,7 @@
 <div class="container">
 		<div class="card">
 			<div class="card-header">
-				{{post.username}} <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				<a href="{{url_for('viewProfile', username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				<div class="coins">{{post.coins}} <i class="fa fa-coins"></i></div>
 			</div>
 			<img src="{{post.image}}" class="card-img-top">
