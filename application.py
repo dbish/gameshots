@@ -66,6 +66,7 @@ rds_con.autocommit(True)
 def getUserInfo(username, email):
     dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
     following = []
+    followers = []
     table = dynamodb.Table('gg_users');
     response = table.get_item(
             Key={
@@ -76,16 +77,19 @@ def getUserInfo(username, email):
     if 'Item' in response:
         if 'following' in response['Item']:
             following = response['Item']['following']
+        if 'followers' in response['Item']:
+            followers = response['Item']['followers']
     else:
         response = table.put_item(
                 Item={
                     'username':username,
                     'email':email,
-                    'following':[]
+                    'following':[],
+                    'followers':[]
                     }
                 )
         flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
-    return following
+    return following, followers
 
 def requires_auth(f):
     @wraps(f)
@@ -131,19 +135,16 @@ def callback_handling():
     auth0.authorize_access_token()
     resp = auth0.get('userinfo')
     userinfo = resp.json()
-    print('user info....')
-    print(userinfo)
 
-    following = getUserInfo(userinfo['name'], userinfo['email'])
-    print('inside callback')
-    print(following)
+    following, followers = getUserInfo(userinfo['name'], userinfo['email'])
 
     session[constants.JWT_PAYLOAD] = userinfo
     session[constants.PROFILE_KEY] = {
         'user_id': userinfo['sub'],
         'name': userinfo['name'],
         'email': userinfo['email'], 
-        'following':following
+        'following':following,
+        'followers':followers
     }
     return redirect('/')
 
@@ -180,9 +181,10 @@ def viewProfile(username):
     games = getUserGames(username)
     posts = getUserThumbnails(username)
     following = session[constants.PROFILE_KEY]['following']
+    followers = session[constants.PROFILE_KEY]['followers']
+    profile_following, profile_followers = getUserInfo(username, "placeholder")
     myusername = session[constants.PROFILE_KEY]['name']
-    print(following) 
-    return render_template('profile.html', screen_name=username, username=username, games=games, posts=posts, following=following, myusername=myusername) 
+    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers) 
 
 @app.route('/post/<postid>')
 @requires_auth
@@ -226,9 +228,18 @@ def followUser():
                 },
             ReturnValues="UPDATED_NEW"
             )
+
     session[constants.PROFILE_KEY]['following'] = response['Attributes']['following']
-    print('new following')
-    print(session[constants.PROFILE_KEY]['following'])
+
+    response = table.update_item(
+            Key={'username':follow},
+            UpdateExpression="SET followers = list_append(followers, :i)",
+            ExpressionAttributeValues={
+                ':i':[username],
+                },
+            ReturnValues="UPDATED_NEW"
+            )
+
     #add to followers
     session.modified = True
     return jsonify('success')
@@ -257,9 +268,15 @@ def unfollowUser():
                     UpdateExpression=f"REMOVE following[{idx}]",
                     ReturnValues="UPDATED_NEW"
                     )
-            print('response complete')
 
-            print(response)
+            x, followers = getUserInfo(unfollow, 'placeholder')
+            idx = followers.index(username)
+            response = table.update_item(
+                    Key={'username':unfollow},
+                    UpdateExpression=f"REMOVE followers[{idx}]",
+                    ReturnValues="UPDATED_NEW"
+                    )
+
             response = table.get_item(
                     Key={
                         'username':username
@@ -269,7 +286,10 @@ def unfollowUser():
             if 'Item' in response:
                 if 'following' in response['Item']:
                     following = response['Item']['following']
+                if 'followers' in response['Item']:
+                    followers = response['Item']['followers']
             session[constants.PROFILE_KEY]['following'] = following 
+            session[constants.PROFILE_KEY]['followers'] = followers
             session.modified = True
 
             #remove from followers

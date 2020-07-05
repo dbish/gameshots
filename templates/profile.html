@@ -20,6 +20,11 @@
 		{% endif %}
 	</div>
 	<div>
+		<h5 class="text-light text-center"><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#followersModal">followers: {{profile_followers|length}}</button></h3>
+		<h5 class="text-light text-center"><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#followingModal">following: {{profile_following|length}}</button></h3>
+
+	</div>
+	<div>
 		<h3 class="text-light">games:</h3>
 		{% for game in games %}
 		<span class="badge badge-primary">{{game}}</span>
@@ -34,5 +39,51 @@
 		</div>
 	{% endfor %}
 	</div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="followingModal" tabindex="-1" role="dialog" aria-labelledby="followingModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Following</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	<ul>
+	{% for follow in profile_following %}
+	<li><a href="{{url_for('viewProfile', username=follow)}}">{{follow}}</a></li> 
+	{% endfor %}
+	</ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="followersModal" tabindex="-1" role="dialog" aria-labelledby="followersModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Followers</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	<ul>
+	{% for follower in profile_followers %}
+	<li><a href="{{url_for('viewProfile', username=follower)}}">{{follower}}</a></li> 
+	{% endfor %}
+	</ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
