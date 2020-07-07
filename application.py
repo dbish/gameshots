@@ -100,6 +100,14 @@ def requires_auth(f):
 
     return decorated
 
+def createComment(user, text, postID):
+    query = f"INSERT INTO COMMENTS (user, postID, text) VALUES ('{user}', '{postID}', '{text}')"
+
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+
+
 def createPost(user, picture, game, info):
 
     #upload to S3 and get link
@@ -212,6 +220,16 @@ def logout():
     session.clear()
     params = {'returnTo': url_for('home', _external=True), 'client_id': AUTH0_CLIENT_ID}
     return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
+
+@requires_auth
+@app.route('/postComment', methods=['POST'])
+def postComment():
+    username = session[constants.PROFILE_KEY]['name']
+    text = request.form['text']
+    postID = request.form['postID']
+    createComment(username, text, postID);
+    
+    return jsonify('success')
 
 @requires_auth
 @app.route('/follow', methods=['POST'])
