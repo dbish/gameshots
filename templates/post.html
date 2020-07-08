@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <link rel="stylesheet" href="{{url_for('static', filename='post.css')}}">
+<script src="{{url_for('static', filename='feed.js')}}"></script>
 <div class="container">
-		<div class="card">
+	<div class="card" id={{post.id}}>
 			<div class="card-header">
 				<a href="{{url_for('viewProfile', username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				<div class="coins">{{post.coins}} <i class="fa fa-coins"></i></div>
@@ -13,9 +14,20 @@
 				<button class="btn"><i class="fa fa-star"></i></button> 
 				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
 				<p class="card-text text-light bg-dark rounded">{{post.time}}/>{{post.editorial}}</p>
+				  <ul class="commentsList">
+                                        {% for comment in post.comments %}
+                                        <li><a href="/gamer/{{comment.username}}">{{comment.username}}</a>: {{comment.text}}
+
+                                        {% if comment.username == screen_name %}
+                                        <button type="button" class="btn btn-danger" onclick="deleteComment('{{comment.id}}', this)">-</button>
+                                        {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                </ul>
 			</div>
 			<div class="card-body">
 				<input class="commentbox" class="form-control" placeholder="enter comment...">
+				<button class="btn" onclick="postComment('{{post.id}}', '{{screen_name}}')">post</button>
 			</div>
 		</div>
 </div>

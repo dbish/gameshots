@@ -198,6 +198,7 @@ def viewProfile(username):
 @app.route('/post/<postid>')
 @requires_auth
 def viewPost(postid):
+    username = session[constants.PROFILE_KEY]['name']
     query = f"SELECT user, picture, game, info, createdtime FROM POSTS where postid='{postid}'"
 
     with rds_con:
@@ -205,9 +206,17 @@ def viewPost(postid):
         cur.execute(query)
 
     info = cur.fetchone()
-    post = Post(info[0], info[2], info[1], info[3], 42, info[4], postid)
+    post = Post(info[0], info[2], info[1], info[3], 42, info[4], postid, [])
 
-    return render_template('post.html', post=post)
+    query = f"SELECT * FROM COMMENTS where postID={postid} ORDER BY createdtime ASC"
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+
+    for row in cur.fetchall():
+        post.comments.append(Comment(row[2], row[3], row[4], row[0]))
+
+    return render_template('post.html', post=post, screen_name=username)
 
 
 
@@ -230,7 +239,25 @@ def postComment():
     postID = request.form['postID']
     createComment(username, text, postID);
     
-    return jsonify('success')
+    return jsonify('123456');
+
+@requires_auth
+@app.route('/deleteComment', methods=['POST'])
+def deleteComment():
+    username = session[constants.PROFILE_KEY]['name']
+    commentID = request.form['commentID']
+
+    query= f"SELECT user from COMMENTS where commentID='{commentID}'"
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+        owner = cur.fetchone()[0]
+        if owner == username:
+            query = f"DELETE FROM COMMENTS where commentID='{commentID}'"
+            cur.execute(query)
+    
+        return jsonify("success")
+
 
 @requires_auth
 @app.route('/follow', methods=['POST'])

@@ -17,7 +17,12 @@
 				<p class="card-text text-light bg-dark rounded">{{post.time}}/>{{post.editorial}}</p>
 				<ul class="commentsList">
 					{% for comment in post.comments %}
-					<li><a href="/gamer/{{comment.username}}">{{comment.username}}</a>: {{comment.text}}</li>
+					<li><a href="/gamer/{{comment.username}}">{{comment.username}}</a>: {{comment.text}}
+
+					{% if comment.username == screen_name %}
+					<button type="button" class="btn btn-danger" onclick="deleteComment('{{comment.id}}', this)">-</button>
+					{% endif %}
+					</li>
 					{% endfor %}
 				</ul>
 			</div>
