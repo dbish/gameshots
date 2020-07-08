@@ -26,7 +26,8 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments'])
+Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id'])
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -325,6 +326,7 @@ def home():
 
 def feed():
     posts = []
+    postRefs = {}
     screen_name = session[constants.PROFILE_KEY]['name']
     email = session[constants.PROFILE_KEY]['email']
     #following = getUserInfo(screen_name, email)
@@ -339,11 +341,29 @@ def feed():
 
     with rds_con:
         cur = rds_con.cursor()
-        print(users)
         cur.execute(query, tuple(users))
 
     for row in cur.fetchall():
-        posts.append(Post(row[1], row[3], row[2], row[4], 42, row[5], row[0]))
+        postID = row[0]
+        newPost = Post(row[1], row[3], row[2], row[4], 42, row[5], postID, [])
+        postRefs[postID] = newPost 
+        posts.append(newPost)
+
+    placeholder = '%s'
+    placeholders = ', '.join(placeholder for postID in postRefs.keys())
+    query = f"SELECT * FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
+    print(query)
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query, tuple(postRefs.keys()))
+
+    for row in cur.fetchall():
+        postID = row[1]
+        print(postID)
+        postRefs[postID].comments.append(Comment(row[2], row[3], row[4], row[0]))
+
+    print(posts)
+
     return render_template('feed.html', posts=posts, screen_name=screen_name)
 
 @app.route('/profile')
@@ -353,5 +373,5 @@ def profile():
 
 if __name__=='__main__':
     print('running')
-    application.run(host='0.0.0.0', port='80')
+    application.run(host='0.0.0.0', port='80', debug=True)
 

@@ -16,6 +16,9 @@
 				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
 				<p class="card-text text-light bg-dark rounded">{{post.time}}/>{{post.editorial}}</p>
 				<ul class="commentsList">
+					{% for comment in post.comments %}
+					<li><a href="/gamer/{{comment.username}}">{{comment.username}}</a>: {{comment.text}}</li>
+					{% endfor %}
 				</ul>
 			</div>
 			<div class="card-body">
