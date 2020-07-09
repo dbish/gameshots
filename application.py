@@ -25,7 +25,7 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed'])
 Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id'])
 
 UPLOAD_FOLDER = "/tmp"
@@ -113,7 +113,7 @@ def createComment(user, text, postID):
     return commentID
 
 
-def createPost(user, picture, game, info):
+def createPost(user, picture, game, info, completed):
     postID = str(uuid.uuid4())
 
     #upload to S3 and get link
@@ -121,7 +121,10 @@ def createPost(user, picture, game, info):
     bucket = s3.Bucket('gameshots.gg')
     bucket.upload_fileobj(picture, user+picture.filename, ExtraArgs={'ACL':'public-read'})
     s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{user}{picture.filename}'
-    query = f"INSERT INTO POSTS (postID, user, picture, game, info) VALUES ('{postID}', '{user}', '{s3_link}', '{game}', '{info}')"
+    if completed:
+        query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed) VALUES ('{postID}', '{user}', '{s3_link}', '{game}', '{info}', 1)"
+    else:
+        query = f"INSERT INTO POSTS (postID, user, picture, game, info) VALUES ('{postID}', '{user}', '{s3_link}', '{game}', '{info}')"
 
     with rds_con:
         cur = rds_con.cursor()
@@ -131,6 +134,7 @@ def createPost(user, picture, game, info):
 @requires_auth
 def create():
     username = session[constants.PROFILE_KEY]['name']
+    completed = False
     if request.method == 'POST':
         result = request.form
         if 'file' in request.files:
@@ -138,7 +142,9 @@ def create():
             game = request.form['game']
             comment = request.form['comment']
             filename = file.filename
-            createPost(username, file, game, comment)
+            if 'completed' in request.form:
+                completed = True
+            createPost(username, file, game, comment, completed)
             #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             return redirect(url_for('home'))
     return render_template('create.html')
@@ -175,7 +181,7 @@ def getUserGames(username):
     return games 
 
 def getUserThumbnails(username):
-    query = f"SELECT postID, picture FROM POSTS where user='{username}' ORDER BY createdtime DESC"
+    query = f"SELECT postID, picture, completed FROM POSTS where user='{username}' ORDER BY createdtime DESC"
     posts = []
 
     with rds_con:
@@ -183,7 +189,7 @@ def getUserThumbnails(username):
         cur.execute(query)
 
     for row in cur.fetchall():
-        posts.append((row[0], row[1])) 
+        posts.append((row[0], row[1], row[2])) 
 
     return posts
 
@@ -196,20 +202,21 @@ def viewProfile(username):
     followers = session[constants.PROFILE_KEY]['followers']
     profile_following, profile_followers = getUserInfo(username, "placeholder")
     myusername = session[constants.PROFILE_KEY]['name']
+    print(posts)
     return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers) 
 
 @app.route('/post/<postid>')
 @requires_auth
 def viewPost(postid):
     username = session[constants.PROFILE_KEY]['name']
-    query = f"SELECT user, picture, game, info, createdtime FROM POSTS where postid='{postid}'"
+    query = f"SELECT user, picture, game, info, createdtime, completed FROM POSTS where postid='{postid}'"
 
     with rds_con:
         cur = rds_con.cursor()
         cur.execute(query)
 
     info = cur.fetchone()
-    post = Post(info[0], info[2], info[1], info[3], 42, info[4], postid, [])
+    post = Post(info[0], info[2], info[1], info[3], 42, info[4], postid, [], info[5])
 
     query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
     with rds_con:
@@ -382,7 +389,7 @@ def feed():
     users = following+[screen_name]
     placeholder = '%s'
     placeholders = ', '.join(placeholder for unused in users)
-    query = f"SELECT postID, user, picture, game, info, createdtime FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
+    query = f"SELECT postID, user, picture, game, info, createdtime, completed FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
 
     with rds_con:
         cur = rds_con.cursor()
@@ -390,7 +397,7 @@ def feed():
 
     for row in cur.fetchall():
         postID = row[0]
-        newPost = Post(row[1], row[3], row[2], row[4], 42, row[5], postID, [])
+        newPost = Post(row[1], row[3], row[2], row[4], 42, row[5], postID, [], row[6])
         postRefs[postID] = newPost 
         posts.append(newPost)
 
@@ -409,10 +416,6 @@ def feed():
 
     return render_template('feed.html', posts=posts, screen_name=screen_name)
 
-@app.route('/profile')
-def profile():
-    screen_name = 'bishopofcode'
-    return render_template('profile.html', screen_name=screen_name)
 
 if __name__=='__main__':
     application.run(host='0.0.0.0', port='80', debug=True)

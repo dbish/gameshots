@@ -27,3 +27,8 @@
 .commentbox {
 	width: 100%;
 }
+
+
+.border {
+        border-width: 10px !important;
+}

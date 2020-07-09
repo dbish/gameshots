@@ -15,3 +15,7 @@ hr {
 	height: 297px;
 	object-fit: cover;
 }
+
+.border {
+	border-width: 5px !important;
+}

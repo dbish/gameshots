@@ -4,7 +4,11 @@
 <script src="{{url_for('static', filename='feed.js')}}"></script>
 <div class="container">
 	{% for post in posts %}
+	{% if post.completed == 1 %}
+	<div class="card border border-warning" id={{post.id}}>
+	{% else %}
 	<div class="card" id={{post.id}}>
+	{% endif %}
 			<div class="card-header">
 				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a><i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				<div class="coins">{{post.coins}} <i class="fa fa-coins"></i></div>
