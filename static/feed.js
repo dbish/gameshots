@@ -29,3 +29,14 @@ function deleteComment(commentID, e){
 		console.log('failed to delete');
 	});
 }
+
+
+function deletePost(postID){
+	$.post('/deletePost', {
+		'postID':postID
+	}).done(function(response){
+
+	}).fail(function(){
+		console.log('failed to delete');
+	});
+}

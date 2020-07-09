@@ -263,6 +263,26 @@ def deleteComment():
 
 
 @requires_auth
+@app.route('/deletePost/<postID>', methods=['POST'])
+def deletePost(postID):
+    username = session[constants.PROFILE_KEY]['name']
+
+    query= f"SELECT user from POSTS where postID='{postID}'"
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+        owner = cur.fetchone()[0]
+        if owner == username:
+            query = f"DELETE FROM POSTS where postID='{postID}'"
+            cur.execute(query)
+            query = f"DELETE FROM COMMENTS where postID='{postID}'"
+            cur.execute(query)
+    
+    return redirect(url_for('home'))
+
+
+
+@requires_auth
 @app.route('/follow', methods=['POST'])
 def followUser():
     username = session[constants.PROFILE_KEY]['name']

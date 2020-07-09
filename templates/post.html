@@ -3,6 +3,11 @@
 <link rel="stylesheet" href="{{url_for('static', filename='post.css')}}">
 <script src="{{url_for('static', filename='feed.js')}}"></script>
 <div class="container">
+	{% if post.username == screen_name %}
+	<form action='{{url_for('deletePost', postID=post.id)}}' method="POST">
+	<input type="submit" class="btn btn-danger" value="delete post"/>
+	</form>
+	{% endif %}
 	<div class="card" id={{post.id}}>
 			<div class="card-header">
 				<a href="{{url_for('viewProfile', username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
