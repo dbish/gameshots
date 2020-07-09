@@ -1,19 +1,14 @@
 function postComment(postID, user){
-	console.log('test');
 	var text = $('#'+postID).find('.commentbox').val();
-	console.log(text)
 	$.post('/postComment',{
 		'text':text,
 		'postID':postID
 	}).done(function(response){
-		console.log(text);
-		console.log(response)
 		var commentID = response; 
 		addComment(postID, text, user, commentID);
 	}).fail(function(){
 		console.log('could not post comment');
 	});
-	console.log('done posting');
 }
 
 function addComment(postID, text, user, commentID){
@@ -26,7 +21,6 @@ function addComment(postID, text, user, commentID){
 }
 
 function deleteComment(commentID, e){
-	console.log('deleting comment');
 	$.post('/deleteComment', {
 		'commentID':commentID
 	}).done(function(response){

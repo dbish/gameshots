@@ -9,13 +9,12 @@ import constants
 from werkzeug.exceptions import HTTPException
 from functools import wraps
 import pymysql
+import uuid
 
 AUTH0_CALLBACK_URL = constants.AUTH0_CALLBACK_URL
 AUTH0_CLIENT_ID = constants.AUTH0_CLIENT_ID
 AUTH0_CLIENT_SECRET = constants.AUTH0_CLIENT_SECRET
 AUTH0_DOMAIN = constants.AUTH0_DOMAIN
-print(constants.AUTH0_DOMAIN)
-print(AUTH0_DOMAIN)
 AUTH0_BASE_URL = 'https://' + AUTH0_DOMAIN
 AUTH0_AUDIENCE = constants.AUTH0_AUDIENCE
 
@@ -102,21 +101,27 @@ def requires_auth(f):
     return decorated
 
 def createComment(user, text, postID):
-    query = f"INSERT INTO COMMENTS (user, postID, text) VALUES ('{user}', '{postID}', '{text}')"
+    commentID = str(uuid.uuid4())
+
+    query = f"INSERT INTO COMMENTS (commentID, user, postID, text) VALUES ('{commentID}', '{user}', '{postID}', '{text}')"
+
 
     with rds_con:
         cur = rds_con.cursor()
         cur.execute(query)
 
+    return commentID
+
 
 def createPost(user, picture, game, info):
+    postID = str(uuid.uuid4())
 
     #upload to S3 and get link
     s3 = aws_session.resource('s3')
     bucket = s3.Bucket('gameshots.gg')
     bucket.upload_fileobj(picture, user+picture.filename, ExtraArgs={'ACL':'public-read'})
     s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{user}{picture.filename}'
-    query = f"INSERT INTO POSTS (user, picture, game, info) VALUES ('{user}', '{s3_link}', '{game}', '{info}')"
+    query = f"INSERT INTO POSTS (postID, user, picture, game, info) VALUES ('{postID}', '{user}', '{s3_link}', '{game}', '{info}')"
 
     with rds_con:
         cur = rds_con.cursor()
@@ -128,7 +133,6 @@ def create():
     username = session[constants.PROFILE_KEY]['name']
     if request.method == 'POST':
         result = request.form
-        print(result)
         if 'file' in request.files:
             file = request.files['file']
             game = request.form['game']
@@ -181,7 +185,6 @@ def getUserThumbnails(username):
     for row in cur.fetchall():
         posts.append((row[0], row[1])) 
 
-    print(posts)
     return posts
 
 @app.route('/gamer/<username>')
@@ -208,13 +211,13 @@ def viewPost(postid):
     info = cur.fetchone()
     post = Post(info[0], info[2], info[1], info[3], 42, info[4], postid, [])
 
-    query = f"SELECT * FROM COMMENTS where postID={postid} ORDER BY createdtime ASC"
+    query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
     with rds_con:
         cur = rds_con.cursor()
         cur.execute(query)
 
     for row in cur.fetchall():
-        post.comments.append(Comment(row[2], row[3], row[4], row[0]))
+        post.comments.append(Comment(row[1], row[2], row[3], row[0]))
 
     return render_template('post.html', post=post, screen_name=username)
 
@@ -237,9 +240,9 @@ def postComment():
     username = session[constants.PROFILE_KEY]['name']
     text = request.form['text']
     postID = request.form['postID']
-    createComment(username, text, postID);
+    commentID = createComment(username, text, postID);
     
-    return jsonify('123456');
+    return jsonify(commentID);
 
 @requires_auth
 @app.route('/deleteComment', methods=['POST'])
@@ -305,9 +308,7 @@ def unfollowUser():
     if 'Item' in response:
         if 'following' in response['Item']:
             following = response['Item']['following']
-            print(following)
             idx = following.index(unfollow)
-            print(idx)
 
             response = table.update_item(
                     Key={'username':username},
@@ -358,13 +359,10 @@ def feed():
     email = session[constants.PROFILE_KEY]['email']
     #following = getUserInfo(screen_name, email)
     following = session[constants.PROFILE_KEY]['following']
-    print('following, again')
-    print(following)
     users = following+[screen_name]
     placeholder = '%s'
     placeholders = ', '.join(placeholder for unused in users)
-    query = f"SELECT * FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
-    print(query)
+    query = f"SELECT postID, user, picture, game, info, createdtime FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
 
     with rds_con:
         cur = rds_con.cursor()
@@ -376,20 +374,18 @@ def feed():
         postRefs[postID] = newPost 
         posts.append(newPost)
 
-    placeholder = '%s'
-    placeholders = ', '.join(placeholder for postID in postRefs.keys())
-    query = f"SELECT * FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
-    print(query)
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query, tuple(postRefs.keys()))
+    if len(posts) > 0:
+        placeholder = '%s'
+        placeholders = ', '.join(placeholder for postID in postRefs.keys())
+        query = f"SELECT postID, commentID, user, text, createdtime FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query, tuple(postRefs.keys()))
 
-    for row in cur.fetchall():
-        postID = row[1]
-        print(postID)
-        postRefs[postID].comments.append(Comment(row[2], row[3], row[4], row[0]))
-
-    print(posts)
+        for row in cur.fetchall():
+            postID = row[0]
+            comment = Comment(row[2], row[3], row[4], row[1])
+            postRefs[postID].comments.append(comment)
 
     return render_template('feed.html', posts=posts, screen_name=screen_name)
 
@@ -399,6 +395,5 @@ def profile():
     return render_template('profile.html', screen_name=screen_name)
 
 if __name__=='__main__':
-    print('running')
     application.run(host='0.0.0.0', port='80', debug=True)
 
