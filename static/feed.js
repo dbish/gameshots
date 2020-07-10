@@ -32,6 +32,7 @@ function deleteComment(commentID, e){
 
 
 function deletePost(postID){
+
 	$.post('/deletePost', {
 		'postID':postID
 	}).done(function(response){
@@ -40,3 +41,40 @@ function deletePost(postID){
 		console.log('failed to delete');
 	});
 }
+
+function downvotePost(postID){
+	var coins = $('#'+postID).find('.coins');
+	var downvoteButton = $('#'+postID).find('.downvoteButton');
+	var upvoteButton = $('#'+postID).find('.upvoteButton');
+
+	$.post('/downvote', {
+		'postID':postID
+	}).done(function(response){
+		coins.text(parseInt(coins.text())-1);
+		downvoteButton.hide();
+		upvoteButton.show();
+		console.log('downvoted!');
+
+	}).fail(function(){
+		console.log('failed to downvote');
+	});
+}
+
+function upvotePost(postID){
+	var coins = $('#'+postID).find('.coins');
+	var downvoteButton = $('#'+postID).find('.downvoteButton');
+	var upvoteButton = $('#'+postID).find('.upvoteButton');
+	
+
+	$.post('/upvote', {
+		'postID':postID
+	}).done(function(response){
+		coins.text(parseInt(coins.text())+1);
+		upvoteButton.hide();
+		downvoteButton.show();
+		console.log('upvoted!');
+	}).fail(function(){
+		console.log('failed to vote');
+	});
+}
+

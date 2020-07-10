@@ -25,7 +25,7 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted'])
 Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id'])
 
 UPLOAD_FOLDER = "/tmp"
@@ -79,17 +79,20 @@ def getUserInfo(username, email):
             following = response['Item']['following']
         if 'followers' in response['Item']:
             followers = response['Item']['followers']
+        if 'voted' in response['Item']:
+            voted = response['Item']['voted']
     else:
         response = table.put_item(
                 Item={
                     'username':username,
                     'email':email,
                     'following':[],
-                    'followers':[]
+                    'followers':[],
+                    'voted':[]
                     }
                 )
         flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
-    return following, followers
+    return following, followers, voted
 
 def requires_auth(f):
     @wraps(f)
@@ -155,7 +158,7 @@ def callback_handling():
     resp = auth0.get('userinfo')
     userinfo = resp.json()
 
-    following, followers = getUserInfo(userinfo['name'], userinfo['email'])
+    following, followers, voted = getUserInfo(userinfo['name'], userinfo['email'])
 
     session[constants.JWT_PAYLOAD] = userinfo
     session[constants.PROFILE_KEY] = {
@@ -163,7 +166,8 @@ def callback_handling():
         'name': userinfo['name'],
         'email': userinfo['email'], 
         'following':following,
-        'followers':followers
+        'followers':followers,
+        'voted':voted
     }
     return redirect('/')
 
@@ -200,23 +204,24 @@ def viewProfile(username):
     posts = getUserThumbnails(username)
     following = session[constants.PROFILE_KEY]['following']
     followers = session[constants.PROFILE_KEY]['followers']
-    profile_following, profile_followers = getUserInfo(username, "placeholder")
+    profile_following, profile_followers, x = getUserInfo(username, "placeholder")
     myusername = session[constants.PROFILE_KEY]['name']
-    print(posts)
     return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers) 
 
 @app.route('/post/<postid>')
 @requires_auth
 def viewPost(postid):
     username = session[constants.PROFILE_KEY]['name']
-    query = f"SELECT user, picture, game, info, createdtime, completed FROM POSTS where postid='{postid}'"
+    voted = session[constants.PROFILE_KEY]['voted']
+
+    query = f"SELECT user, picture, game, info, createdtime, completed, coins FROM POSTS where postid='{postid}'"
 
     with rds_con:
         cur = rds_con.cursor()
         cur.execute(query)
 
     info = cur.fetchone()
-    post = Post(info[0], info[2], info[1], info[3], 42, info[4], postid, [], info[5])
+    post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted))
 
     query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
     with rds_con:
@@ -267,6 +272,67 @@ def deleteComment():
             cur.execute(query)
     
         return jsonify("success")
+
+@requires_auth
+@app.route('/upvote', methods=['POST'])
+def upvote():
+    username = session[constants.PROFILE_KEY]['name']
+    postID = request.form['postID']
+    voted = session[constants.PROFILE_KEY]['voted']
+    if postID not in voted:
+        #update dynamodb
+        dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+        table = dynamodb.Table('gg_users');
+        response = table.update_item(
+                Key={'username':username},
+                UpdateExpression="SET voted = list_append(voted, :i)",
+                ExpressionAttributeValues={
+                    ':i':[postID],
+                    }
+                )
+
+
+
+        #update RDS
+        query= f"UPDATE POSTS set coins=coins+1 where postID='{postID}'"
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+
+
+        voted.append(postID)
+        session.modified = True
+        return jsonify('success')
+    return jsonify('already voted')
+
+
+@requires_auth
+@app.route('/downvote', methods=['POST'])
+def downvote():
+    username = session[constants.PROFILE_KEY]['name']
+    postID = request.form['postID']
+    voted = session[constants.PROFILE_KEY]['voted']
+    if postID in voted: #no negative votes, only takeaway your own vote
+        #update dynamodb
+        idx = voted.index(postID)
+        dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+        table = dynamodb.Table('gg_users');
+        response = table.update_item(
+                Key={'username':username},
+                UpdateExpression=f"REMOVE voted[{idx}]",
+                ReturnValues="UPDATED_NEW"
+                )
+
+        #update RDS
+        query= f"UPDATE POSTS set coins=coins-1 where postID='{postID}'"
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+
+        voted.remove(postID)
+        session.modified = True
+        return jsonify('success')
+    return jsonify('cannot downvote something that was not upvoted')
 
 
 @requires_auth
@@ -343,7 +409,7 @@ def unfollowUser():
                     ReturnValues="UPDATED_NEW"
                     )
 
-            x, followers = getUserInfo(unfollow, 'placeholder')
+            x, followers, y = getUserInfo(unfollow, 'placeholder')
             idx = followers.index(username)
             response = table.update_item(
                     Key={'username':unfollow},
@@ -386,10 +452,11 @@ def feed():
     email = session[constants.PROFILE_KEY]['email']
     #following = getUserInfo(screen_name, email)
     following = session[constants.PROFILE_KEY]['following']
+    voted = session[constants.PROFILE_KEY]['voted']
     users = following+[screen_name]
     placeholder = '%s'
     placeholders = ', '.join(placeholder for unused in users)
-    query = f"SELECT postID, user, picture, game, info, createdtime, completed FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
+    query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
 
     with rds_con:
         cur = rds_con.cursor()
@@ -397,7 +464,7 @@ def feed():
 
     for row in cur.fetchall():
         postID = row[0]
-        newPost = Post(row[1], row[3], row[2], row[4], 42, row[5], postID, [], row[6])
+        newPost = Post(row[1], row[3], row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted))
         postRefs[postID] = newPost 
         posts.append(newPost)
 

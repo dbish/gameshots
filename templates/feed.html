@@ -11,11 +11,18 @@
 	{% endif %}
 			<div class="card-header">
 				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a><i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
-				<div class="coins">{{post.coins}} <i class="fa fa-coins"></i></div>
+				<div class="coins">{{post.coins}}</i></div>
 			</div>
 			<a href="{{url_for('viewPost', postid=post.id)}}"><img src="{{post.image}}" class="card-img-top"></a>
 			<div class="card-body">
-				<button class="btn">+1</button> 
+				{% if post.voted %}
+				<button class="btn upvoteButton" onclick="upvotePost('{{post.id}}')" style="display:none">+1</button> 
+				<button class="btn downvoteButton" onclick="downvotePost('{{post.id}}')">-1</button> 
+				{% else %}
+				<button class="btn upvoteButton" onclick="upvotePost('{{post.id}}')">+1</button> 
+				<button class="btn downvoteButton" onclick="downvotePost('{{post.id}}')" style="display:none">-1</button> 
+
+				{% endif %}
 				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
 				<p class="card-text text-light bg-dark rounded">{{post.time}}/>{{post.editorial}}</p>
 				<ul class="commentsList">
