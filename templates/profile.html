@@ -32,16 +32,26 @@
 		<hr/>
 	</div>
 
-	<div>
-	{% for post in posts %}
-		<div class="card">
-			{% if post[2]==1%}
-			<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top mx-auto border border-warning"></a>
-			{% else %}
-			<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top mx-auto"></a>
-			{% endif %}
+	<div class="row" >
+		<div class="col-10">
+		{% for post in posts %}
+			<div class="card">
+				{% if post[2]==1 %}
+				<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top mx-auto border border-warning"></a>
+				{% else %}
+				<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top mx-auto"></a>
+				{% endif %}
+			</div>
+		{% endfor %}
 		</div>
-	{% endfor %}
+		<div "col-2" id="completedGames">
+			<h2>Completed</h2>
+			<ul>
+			{% for game in completed_games %}
+			<li>{{game}}</li>	
+			{% endfor %}
+			</ul>
+		</div>
 	</div>
 </div>
 <!-- Modal -->

@@ -106,12 +106,12 @@ def requires_auth(f):
 def createComment(user, text, postID):
     commentID = str(uuid.uuid4())
 
-    query = f"INSERT INTO COMMENTS (commentID, user, postID, text) VALUES ('{commentID}', '{user}', '{postID}', '{text}')"
+    query = f"INSERT INTO COMMENTS (commentID, user, postID, text) VALUES (%s, %s, %s, %s)"
 
 
     with rds_con:
         cur = rds_con.cursor()
-        cur.execute(query)
+        cur.execute(query, (commentID, user, postID, text))
 
     return commentID
 
@@ -124,14 +124,14 @@ def createPost(user, picture, game, info, completed):
     bucket = s3.Bucket('gameshots.gg')
     bucket.upload_fileobj(picture, user+picture.filename, ExtraArgs={'ACL':'public-read'})
     s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{user}{picture.filename}'
+    comp_val = 0
+    query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed) VALUES (%s,%s,%s,%s,%s,%s)"
     if completed:
-        query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed) VALUES ('{postID}', '{user}', '{s3_link}', '{game}', '{info}', 1)"
-    else:
-        query = f"INSERT INTO POSTS (postID, user, picture, game, info) VALUES ('{postID}', '{user}', '{s3_link}', '{game}', '{info}')"
-
+        comp_val = 1
     with rds_con:
         cur = rds_con.cursor()
-        cur.execute(query)
+        vals = (postID, user, s3_link, game, info, comp_val)
+        cur.execute(query, (postID, user, s3_link, game, info, comp_val))
     
 @app.route('/create', methods=['POST', 'GET'])
 @requires_auth
@@ -182,7 +182,16 @@ def getUserGames(username):
     game_info = cur.fetchall()
     games = [game[0] for game in game_info]
 
-    return games 
+    query = f"SELECT DISTINCT game FROM POSTS where user='{username}' and completed=1"
+
+    with rds_con:
+        cur = rds_con.cursor()
+        cur.execute(query)
+
+    completed_games = cur.fetchall() 
+    completed_games = [game[0] for game in completed_games]
+
+    return games, completed_games 
 
 def getUserThumbnails(username):
     query = f"SELECT postID, picture, completed FROM POSTS where user='{username}' ORDER BY createdtime DESC"
@@ -200,13 +209,13 @@ def getUserThumbnails(username):
 @app.route('/gamer/<username>')
 @requires_auth
 def viewProfile(username):
-    games = getUserGames(username)
+    games, completed_games = getUserGames(username)
     posts = getUserThumbnails(username)
     following = session[constants.PROFILE_KEY]['following']
     followers = session[constants.PROFILE_KEY]['followers']
     profile_following, profile_followers, x = getUserInfo(username, "placeholder")
     myusername = session[constants.PROFILE_KEY]['name']
-    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers) 
+    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games) 
 
 @app.route('/post/<postid>')
 @requires_auth
@@ -294,10 +303,10 @@ def upvote():
 
 
         #update RDS
-        query= f"UPDATE POSTS set coins=coins+1 where postID='{postID}'"
+        query= f"UPDATE POSTS set coins=coins+1 where postID=%s"
         with rds_con:
             cur = rds_con.cursor()
-            cur.execute(query)
+            cur.execute(query, (postID))
 
 
         voted.append(postID)
@@ -324,10 +333,10 @@ def downvote():
                 )
 
         #update RDS
-        query= f"UPDATE POSTS set coins=coins-1 where postID='{postID}'"
+        query= f"UPDATE POSTS set coins=coins-1 where postID=%s"
         with rds_con:
             cur = rds_con.cursor()
-            cur.execute(query)
+            cur.execute(query, (postID))
 
         voted.remove(postID)
         session.modified = True

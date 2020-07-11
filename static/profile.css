@@ -5,17 +5,37 @@ hr {
 
 .card {
 	margin: 10px;
-	width: 300px;
-	height: 300px;
+	width: 250px;
+	height: 250px;
 	display:inline-block;
 }
 
 .card-img-top {
 	text-align:center;
-	height: 297px;
+	height: 247px;
 	object-fit: cover;
 }
 
 .border {
 	border-width: 5px !important;
+}
+
+#completedGames {
+	border:1px solid white;
+	border-radius: 5px;
+	color:white;
+	padding:5px;
+}
+ul {
+	list-style:none;
+	padding:0;
+	margin-left:0;
+}
+
+ul li:before {
+	content:' ✓ ';
+	left: 0;
+	width: 1em;
+	height: 1em;
+	color:white;
 }
