@@ -78,3 +78,13 @@ function upvotePost(postID){
 	});
 }
 
+function toggleGame(game, e){
+	$("."+game).each(function(){
+		if (e.checked){
+			$(this).show();
+		}
+		else {
+			$(this).hide();
+		}
+	});
+}

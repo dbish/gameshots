@@ -25,7 +25,7 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameNormalized'])
 Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id'])
 
 UPLOAD_FOLDER = "/tmp"
@@ -118,7 +118,6 @@ def createComment(user, text, postID):
 
 def createPost(user, picture, game, info, completed):
     postID = str(uuid.uuid4())
-
     #upload to S3 and get link
     s3 = aws_session.resource('s3')
     bucket = s3.Bucket('gameshots.gg')
@@ -230,7 +229,7 @@ def viewPost(postid):
         cur.execute(query)
 
     info = cur.fetchone()
-    post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted))
+    post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted), normalize(info[2]))
 
     query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
     with rds_con:
@@ -363,6 +362,9 @@ def deletePost(postID):
     return redirect(url_for('home'))
 
 
+def normalize(game):
+    game = game.replace(":", "_")
+    return game.replace(" ", "_")
 
 @requires_auth
 @app.route('/follow', methods=['POST'])
@@ -465,6 +467,7 @@ def feed():
     users = following+[screen_name]
     placeholder = '%s'
     placeholders = ', '.join(placeholder for unused in users)
+    games = set()
     query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
 
     with rds_con:
@@ -473,9 +476,13 @@ def feed():
 
     for row in cur.fetchall():
         postID = row[0]
-        newPost = Post(row[1], row[3], row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted))
+        game = row[3]
+        games.add(game)
+        newPost = Post(row[1], game, row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted), normalize(game))
         postRefs[postID] = newPost 
         posts.append(newPost)
+
+    games = [(game, normalize(game)) for game in games]
 
     if len(posts) > 0:
         placeholder = '%s'
@@ -490,7 +497,7 @@ def feed():
             comment = Comment(row[2], row[3], row[4], row[1])
             postRefs[postID].comments.append(comment)
 
-    return render_template('feed.html', posts=posts, screen_name=screen_name)
+    return render_template('feed.html', posts=posts, screen_name=screen_name, games=games)
 
 
 if __name__=='__main__':

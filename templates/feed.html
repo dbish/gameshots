@@ -3,11 +3,13 @@
 <link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
 <script src="{{url_for('static', filename='feed.js')}}"></script>
 <div class="container">
+	<div class="row">
+	<div class="col-10">
 	{% for post in posts %}
 	{% if post.completed == 1 %}
-	<div class="card border border-warning" id={{post.id}}>
+	<div class="card border border-warning post {{post.gameNormalized}}" id={{post.id}}>
 	{% else %}
-	<div class="card" id={{post.id}}>
+	<div class="card {{post.gameNormalized}}" id={{post.id}}>
 	{% endif %}
 			<div class="card-header">
 				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a><i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
@@ -40,7 +42,21 @@
 				<input class="commentbox" class="form-control" placeholder="enter comment...">
 				<button class="btn" onclick="postComment('{{post.id}}', '{{screen_name}}')">post</button>
 			</div>
-		</div>
+	</div>
 	{% endfor %}
+	</div>
+	<div id="shownGames" class="col-2">
+		{% for game in games %}
+		<div class="gameToggle border-bottom border-left border-white rounded-left">
+		{{game[0]}}
+		<label class="switch">
+			<input type="checkbox" checked onchange="toggleGame('{{game[1]}}', this)">
+		  <span class="slider"></span>
+		</label>
+		</div>
+
+		{% endfor %}
+	</div>
+	</div>
 </div>
 {% endblock %}
