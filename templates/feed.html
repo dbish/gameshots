@@ -39,7 +39,10 @@
 				</ul>
 			</div>
 			<div class="card-body">
-				<input class="commentbox" class="form-control" placeholder="enter comment...">
+				<input class="commentbox" class="form-control" placeholder="enter comment..."
+									       onkeydown= "if (event.keyCode==13) 
+									       postComment('{{post.id}}', '{{screen_name}}')"					       
+				>
 				<button class="btn" onclick="postComment('{{post.id}}', '{{screen_name}}')">post</button>
 			</div>
 	</div>

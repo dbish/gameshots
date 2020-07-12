@@ -1,5 +1,7 @@
 function postComment(postID, user){
-	var text = $('#'+postID).find('.commentbox').val();
+	var commentBox = $('#'+postID).find('.commentbox');
+	var text = commentBox.val();
+	commentBox.val('');
 	$.post('/postComment',{
 		'text':text,
 		'postID':postID
@@ -88,3 +90,4 @@ function toggleGame(game, e){
 		}
 	});
 }
+
