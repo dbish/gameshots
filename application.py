@@ -10,6 +10,7 @@ from werkzeug.exceptions import HTTPException
 from functools import wraps
 import pymysql
 import uuid
+from datetime import datetime
 
 AUTH0_CALLBACK_URL = constants.AUTH0_CALLBACK_URL
 AUTH0_CLIENT_ID = constants.AUTH0_CLIENT_ID
@@ -124,8 +125,14 @@ def createPost(user, picture, game, info, completed):
     #upload to S3 and get link
     s3 = aws_session.resource('s3')
     bucket = s3.Bucket('gameshots.gg')
-    bucket.upload_fileobj(picture, user+picture.filename, ExtraArgs={'ACL':'public-read'})
-    s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{user}{picture.filename}'
+    prefix = str(uuid.uuid4())
+    filename = picture.filename
+    if len(filename) > 100:
+        filename = filename[-100:]
+    filename = prefix + filename
+    print(filename)
+    bucket.upload_fileobj(picture, filename, ExtraArgs={'ACL':'public-read'})
+    s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{filename}'
     comp_val = 0
     query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed) VALUES (%s,%s,%s,%s,%s,%s)"
     if completed:
@@ -133,7 +140,7 @@ def createPost(user, picture, game, info, completed):
     with rds_con:
         cur = rds_con.cursor()
         vals = (postID, user, s3_link, game, info, comp_val)
-        cur.execute(query, (postID, user, s3_link, game, info, comp_val))
+        cur.execute(query, vals) 
     
 @app.route('/create', methods=['POST', 'GET'])
 @requires_auth
