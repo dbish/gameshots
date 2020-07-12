@@ -81,18 +81,21 @@ def getUserInfo(username, email):
             followers = response['Item']['followers']
         if 'voted' in response['Item']:
             voted = response['Item']['voted']
+        if 'filtered_following' in response['Item']:
+            filtered_following = response['Item']['filtered_following']
     else:
         response = table.put_item(
                 Item={
                     'username':username,
                     'email':email,
                     'following':[],
+                    'filtered_following':{},
                     'followers':[],
                     'voted':[]
                     }
                 )
         flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
-    return following, followers, voted
+    return following, followers, voted, filtered_following
 
 def requires_auth(f):
     @wraps(f)
@@ -157,7 +160,7 @@ def callback_handling():
     resp = auth0.get('userinfo')
     userinfo = resp.json()
 
-    following, followers, voted = getUserInfo(userinfo['name'], userinfo['email'])
+    following, followers, voted, filtered_following = getUserInfo(userinfo['name'], userinfo['email'])
 
     session[constants.JWT_PAYLOAD] = userinfo
     session[constants.PROFILE_KEY] = {
@@ -166,6 +169,7 @@ def callback_handling():
         'email': userinfo['email'], 
         'following':following,
         'followers':followers,
+        'filtered_following':filtered_following,
         'voted':voted
     }
     return redirect('/')
@@ -205,16 +209,30 @@ def getUserThumbnails(username):
 
     return posts
 
-@app.route('/gamer/<username>')
+@app.route('/gamer/<username>', methods=['GET', 'POST'])
 @requires_auth
 def viewProfile(username):
     games, completed_games = getUserGames(username)
+    filtered_following = session[constants.PROFILE_KEY]['filtered_following']
+    myusername = session[constants.PROFILE_KEY]['name']
+    if request.method == 'POST':
+        data = request.form
+        all_games = games[:]
+        for item in data:
+            all_games.remove(item)
+        if len(all_games) > 0 or (username in filtered_following):
+            filtered_following = updateFilter(myusername, username, all_games, filtered_following)
+            session[constants.PROFILE_KEY]['filtered_following'] = filtered_following 
+            session.modified = True
+        
     posts = getUserThumbnails(username)
     following = session[constants.PROFILE_KEY]['following']
     followers = session[constants.PROFILE_KEY]['followers']
-    profile_following, profile_followers, x = getUserInfo(username, "placeholder")
-    myusername = session[constants.PROFILE_KEY]['name']
-    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games) 
+    profile_following, profile_followers, *_ = getUserInfo(username, "placeholder")
+    filtered_games = []
+    if username in filtered_following:
+        filtered_games = filtered_following[username]
+    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games, filtered=filtered_games) 
 
 @app.route('/post/<postid>')
 @requires_auth
@@ -366,6 +384,26 @@ def normalize(game):
     game = game.replace(":", "_")
     return game.replace(" ", "_")
 
+def updateFilter(username, following, games, curFilter):
+    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('gg_users');
+    response = table.update_item(
+            Key = {
+                'username':username
+                },
+            UpdateExpression="SET filtered_following.#f = :v",
+            ExpressionAttributeNames = {'#f':following},
+            ExpressionAttributeValues={
+                ':v':games,
+            }
+            )
+    curFilter[following] = games
+    return curFilter
+
+
+
+
+
 @requires_auth
 @app.route('/follow', methods=['POST'])
 def followUser():
@@ -397,6 +435,7 @@ def followUser():
     session.modified = True
     return jsonify('success')
 
+
 @requires_auth
 @app.route('/unfollow', methods=['POST'])
 def unfollowUser():
@@ -420,7 +459,7 @@ def unfollowUser():
                     ReturnValues="UPDATED_NEW"
                     )
 
-            x, followers, y = getUserInfo(unfollow, 'placeholder')
+            _, followers, *_ = getUserInfo(unfollow, 'placeholder')
             idx = followers.index(username)
             response = table.update_item(
                     Key={'username':unfollow},
@@ -463,16 +502,32 @@ def feed():
     email = session[constants.PROFILE_KEY]['email']
     #following = getUserInfo(screen_name, email)
     following = session[constants.PROFILE_KEY]['following']
+    filtered_following = session[constants.PROFILE_KEY]['filtered_following']
     voted = session[constants.PROFILE_KEY]['voted']
     users = following+[screen_name]
     placeholder = '%s'
-    placeholders = ', '.join(placeholder for unused in users)
+    allParams = []
     games = set()
-    query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
+
+    #filtered users
+    query = ''
+    for user in filtered_following:
+        filtered_games = filtered_following[user]
+        if len(filtered_games) > 0:
+            users.remove(user)
+            placeholders = ', '.join(placeholder for game in filtered_games)
+            allParams.append(user)
+            allParams.extend(filtered_games)
+            query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user=%s and game not in ({placeholders})"
+            query += "\n UNION \n"
+
+    placeholders = ', '.join(placeholder for user in users)
+    allParams.extend(users)
+    query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
 
     with rds_con:
         cur = rds_con.cursor()
-        cur.execute(query, tuple(users))
+        cur.execute(query, tuple(allParams))
 
     for row in cur.fetchall():
         postID = row[0]
