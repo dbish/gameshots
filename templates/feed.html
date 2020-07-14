@@ -7,12 +7,12 @@
 	<div class="col-10">
 	{% for post in posts %}
 	{% if post.completed == 1 %}
-	<div class="card border border-warning post {{post.gameNormalized}}" id={{post.id}}>
+	<div class="card border border-warning post bg-dark {{post.gameNormalized}}" id={{post.id}}>
 	{% else %}
-	<div class="card {{post.gameNormalized}}" id={{post.id}}>
+	<div class="card {{post.gameNormalized}} bg-dark" id={{post.id}}>
 	{% endif %}
 			<div class="card-header">
-				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a><i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				<div class="coins">{{post.coins}}</i></div>
 			</div>
 			<a href="{{url_for('viewPost', postid=post.id)}}"><img src="{{post.image}}" class="card-img-top"></a>
@@ -26,14 +26,23 @@
 
 				{% endif %}
 				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
-				<p class="card-text text-light bg-dark rounded">{{post.time}}/>{{post.editorial}}</p>
 				<ul class="commentsList">
+					<li class="editorial">{{post.time}}: {{post.editorial}}</li>
 					{% for comment in post.comments %}
-					<li><a href="/gamer/{{comment.username}}">{{comment.username}}</a>: {{comment.text}}
-
 					{% if comment.username == screen_name %}
-					<button type="button" class="btn btn-danger" onclick="deleteComment('{{comment.id}}', this)">-</button>
+					<li class='mycomment'>
+					{% else %}
+					<li>
 					{% endif %}
+					{% if comment.username == screen_name %}
+					<button type="button" class="btn btn-sm btn-danger" onclick="deleteComment('{{comment.id}}', this)">-</button>
+					{% endif %}
+					{% if comment.username == post.username %}
+					<i class="fa fa-crown" style='color:yellow'></i>
+					{% elif comment.username in following %}
+					<i class="fa fa-gem"></i>
+					{% endif %}
+					<a href="/gamer/{{comment.username}}">{{comment.username}}</a>: {{comment.text}}
 					</li>
 					{% endfor %}
 				</ul>

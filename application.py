@@ -494,6 +494,9 @@ def unfollowUser():
 
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route('/')
 def home():
@@ -559,7 +562,7 @@ def feed():
             comment = Comment(row[2], row[3], row[4], row[1])
             postRefs[postID].comments.append(comment)
 
-    return render_template('feed.html', posts=posts, screen_name=screen_name, games=games)
+    return render_template('feed.html', posts=posts, screen_name=screen_name, games=games, following=following)
 
 
 if __name__=='__main__':

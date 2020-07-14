@@ -1,3 +1,11 @@
+.mycomment {
+	background-color:#999999;
+	margin-bottom:5px;
+}
+
+.btn-sm {
+	margin-top:4px;
+}
 .card {
 	max-width: 800px;
 	margin: auto;
@@ -22,6 +30,7 @@
 .card-body {
 	border-top-style:solid;
 
+
 }
 
 .commentbox {
@@ -31,6 +40,20 @@
 
 .post{
         border-width: 10px !important;
+}
+
+li {
+	color:white;
+	list-style: none;
+}
+
+.editorial {
+	background-color:#9146FF;
+	margin-bottom:5px;
+}
+
+.card-header{
+	color:white;
 }
 
 /* The switch - the box around the slider */
@@ -48,6 +71,7 @@
   height: 0;
 }
 
+
 /* The slider */
 .slider {
   position: absolute;
@@ -56,7 +80,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: black#;
   -webkit-transition: .4s;
   transition: .4s;
 }
@@ -74,7 +98,7 @@
 }
 
 input:checked + .slider {
-  background-color: #2196F3;
+  background-color: #9146FF;
 }
 
 input:focus + .slider {

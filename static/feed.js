@@ -15,8 +15,8 @@ function postComment(postID, user){
 
 function addComment(postID, text, user, commentID){
 	var commentsList = $('#'+postID).find('.commentsList');
-	var newLI ='<li><a href="/gamer/'+user+'">'+user+'</a>: '+text;
-	newLI += '<button type="button" class="btn btn-danger" onclick="deleteComment(\''+commentID+'\', this)">-</button>';
+	var newLI = '<li class="mycomment"><button type="button" class="btn btn-sm btn-danger" onclick="deleteComment(\''+commentID+'\', this)">-</button>';
+	newLI +='<a href="/gamer/'+user+'">'+user+'</a>: '+text;
 	newLI += '</li>';
 	commentsList.append(newLI);
 
