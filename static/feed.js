@@ -1,3 +1,12 @@
+var colors  = ['Aqua', 'Aquamarine', 'Blue', 'BlueViolet', 'Chartreuse', 'Coral', 'CornflowerBlue', 'Crimson',
+	'Cyan', 'DarkMagenta', 'DarkOrange', 'Fuchsia', 'ForestGreen', 'Gold', 'GreenYellow',
+	'HotPink', 'Lavender', 'LawnGreen', 'Lime', 'Magenta', 'MediumSpringGreen', 'Red', 'RoyalBlue', 'Yellow']
+
+function getColor(name){
+	var value = name.charCodeAt(0)*name.length;
+	return colors[value%colors.length];
+}
+
 function postComment(postID, user){
 	var commentBox = $('#'+postID).find('.commentbox');
 	var text = commentBox.val();
@@ -16,7 +25,7 @@ function postComment(postID, user){
 function addComment(postID, text, user, commentID){
 	var commentsList = $('#'+postID).find('.commentsList');
 	var newLI = '<li class="mycomment"><button type="button" class="btn btn-sm btn-danger" onclick="deleteComment(\''+commentID+'\', this)">-</button>';
-	newLI +='<a href="/gamer/'+user+'">'+user+'</a>: '+text;
+	newLI +='<a href="/gamer/'+user+'" style="color:'+getColor(user)+'">'+user+'</a>: '+text;
 	newLI += '</li>';
 	commentsList.append(newLI);
 

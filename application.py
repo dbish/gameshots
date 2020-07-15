@@ -27,7 +27,7 @@ application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
 Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameNormalized'])
-Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id'])
+Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color'])
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -262,7 +262,7 @@ def viewPost(postid):
         cur.execute(query)
 
     for row in cur.fetchall():
-        post.comments.append(Comment(row[1], row[2], row[3], row[0]))
+        post.comments.append(Comment(row[1], row[2], row[3], row[0], getColor(row[1])))
 
     return render_template('post.html', post=post, screen_name=username)
 
@@ -505,6 +505,13 @@ def home():
     else:
         return feed()
 
+def getColor(name):
+    colors  = ['Aqua', 'Aquamarine', 'Blue', 'BlueViolet', 'Chartreuse', 'Coral', 'CornflowerBlue', 'Crimson',
+        'Cyan', 'DarkMagenta', 'DarkOrange', 'Fuchsia', 'ForestGreen', 'Gold', 'GreenYellow',
+        'HotPink', 'Lavender', 'LawnGreen', 'Lime', 'Magenta', 'MediumSpringGreen', 'Red', 'RoyalBlue', 'Yellow']
+    value = ord(name[0])*len(name)
+    return colors[value%len(colors)];
+
 def feed():
     posts = []
     postRefs = {}
@@ -559,7 +566,7 @@ def feed():
 
         for row in cur.fetchall():
             postID = row[0]
-            comment = Comment(row[2], row[3], row[4], row[1])
+            comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]))
             postRefs[postID].comments.append(comment)
 
     return render_template('feed.html', posts=posts, screen_name=screen_name, games=games, following=following)

@@ -42,7 +42,7 @@
 					{% elif comment.username in following %}
 					<i class="fa fa-gem"></i>
 					{% endif %}
-					<a href="/gamer/{{comment.username}}">{{comment.username}}</a>: {{comment.text}}
+					<a href="/gamer/{{comment.username}}" style="color:{{comment.color}}">{{comment.username}}</a>: {{comment.text}}
 					</li>
 					{% endfor %}
 				</ul>
