@@ -1,0 +1,12 @@
+.info{
+	color:white;
+}
+.split {
+	border:2px solid #9146ff;
+	border-radius:2px;
+	margin:15px;
+}
+
+.img-fluid{
+	border: 2px solid white;
+}
