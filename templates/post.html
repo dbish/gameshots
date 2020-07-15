@@ -3,11 +3,6 @@
 <link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
 <script src="{{url_for('static', filename='feed.js')}}"></script>
 <div class="container">
-	{% if post.username == screen_name %}
-	<form action='{{url_for('deletePost', postID=post.id)}}' method="POST">
-	<input type="submit" class="btn btn-danger" value="delete post"/>
-	</form>
-	{% endif %}
 	{% if post.completed == 1 %}
 	<div class="card border border-warning post bg-dark" id={{post.id}}>
 	{% else %}
@@ -59,5 +54,10 @@
 				<button class="btn" onclick="postComment('{{post.id}}', '{{screen_name}}')">post</button>
 			</div>
 		</div>
+	{% if post.username == screen_name %}
+	<form class='deleteButton' action='{{url_for('deletePost', postID=post.id)}}' method="POST">
+	<input type="submit" class="btn btn-danger" value="delete post"/>
+	</form>
+	{% endif %}
 </div>
 {% endblock %}

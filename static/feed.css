@@ -1,3 +1,14 @@
+.deleteButton {
+	margin:auto;
+	width:15%;
+}
+
+#shownGames {
+	position: fixed;
+	right:0px;
+	top:50%;
+}
+
 .mycomment {
 	background-color:#999999;
 	margin-bottom:5px;
@@ -125,4 +136,5 @@ input:checked + .slider:before {
 	border:white;
 	margin:2px;
 	padding:2px;
+	margin-bottom:5px;
 }
