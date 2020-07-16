@@ -61,13 +61,12 @@ aws_session = boto3.Session(
 )
 
 
-rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-rds_con.autocommit(True)
-
 def getUserInfo(username, email):
     dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
     following = []
     followers = []
+    voted = []
+    filtered_following = []
     table = dynamodb.Table('gg_users');
     response = table.get_item(
             Key={
@@ -108,14 +107,19 @@ def requires_auth(f):
     return decorated
 
 def createComment(user, text, postID):
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     commentID = str(uuid.uuid4())
 
     query = f"INSERT INTO COMMENTS (commentID, user, postID, text) VALUES (%s, %s, %s, %s)"
 
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query, (commentID, user, postID, text))
+        rds_con.commit()
+    finally:
+        rds_con.close()
 
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query, (commentID, user, postID, text))
 
     return commentID
 
@@ -137,10 +141,18 @@ def createPost(user, picture, game, info, completed):
     query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed) VALUES (%s,%s,%s,%s,%s,%s)"
     if completed:
         comp_val = 1
-    with rds_con:
-        cur = rds_con.cursor()
-        vals = (postID, user, s3_link, game, info, comp_val)
-        cur.execute(query, vals) 
+
+    
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            vals = (postID, user, s3_link, game, info, comp_val)
+            cur.execute(query, vals) 
+        rds_con.commit()
+    finally:
+        rds_con.close()
+
     
 @app.route('/create', methods=['POST', 'GET'])
 @requires_auth
@@ -185,18 +197,23 @@ def getUserGames(username):
     query = f"SELECT DISTINCT game FROM POSTS where user='{username}'"
     games = []
 
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query)
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
 
-    game_info = cur.fetchall()
-    games = [game[0] for game in game_info]
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
 
-    query = f"SELECT DISTINCT game FROM POSTS where user='{username}' and completed=1"
+        game_info = cur.fetchall()
+        games = [game[0] for game in game_info]
 
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query)
+        query = f"SELECT DISTINCT game FROM POSTS where user='{username}' and completed=1"
+
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+    finally:
+        rds_con.close()
 
     completed_games = cur.fetchall() 
     completed_games = [game[0] for game in completed_games]
@@ -207,9 +224,14 @@ def getUserThumbnails(username):
     query = f"SELECT postID, picture, completed FROM POSTS where user='{username}' ORDER BY createdtime DESC"
     posts = []
 
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query)
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+    finally:
+        rds_con.close()
 
     for row in cur.fetchall():
         posts.append((row[0], row[1], row[2])) 
@@ -249,20 +271,25 @@ def viewPost(postid):
 
     query = f"SELECT user, picture, game, info, createdtime, completed, coins FROM POSTS where postid='{postid}'"
 
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query)
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
 
-    info = cur.fetchone()
-    post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted), normalize(info[2]))
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
 
-    query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query)
+        info = cur.fetchone()
+        post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted), normalize(info[2]))
 
-    for row in cur.fetchall():
-        post.comments.append(Comment(row[1], row[2], row[3], row[0], getColor(row[1])))
+        query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+
+        for row in cur.fetchall():
+            post.comments.append(Comment(row[1], row[2], row[3], row[0], getColor(row[1])))
+    finally:
+        rds_con.close()
 
     return render_template('post.html', post=post, screen_name=username)
 
@@ -296,15 +323,23 @@ def deleteComment():
     commentID = request.form['commentID']
 
     query= f"SELECT user from COMMENTS where commentID='{commentID}'"
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query)
-        owner = cur.fetchone()[0]
-        if owner == username:
-            query = f"DELETE FROM COMMENTS where commentID='{commentID}'"
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+
+    result = "failure"
+
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
             cur.execute(query)
-    
-        return jsonify("success")
+            owner = cur.fetchone()[0]
+            if owner == username:
+                query = f"DELETE FROM COMMENTS where commentID='{commentID}'"
+                cur.execute(query)
+                result = "success"
+    finally:
+        rds_con.commit()
+        rds_con.close()
+        return jsonify(result)
 
 @requires_auth
 @app.route('/upvote', methods=['POST'])
@@ -327,11 +362,16 @@ def upvote():
 
 
         #update RDS
+        rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
         query= f"UPDATE POSTS set coins=coins+1 where postID=%s"
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query, (postID))
 
+        try:
+            with rds_con:
+                cur = rds_con.cursor()
+                cur.execute(query, (postID))
+            rds_con.commit()
+        finally:
+            rds_con.close()
 
         voted.append(postID)
         session.modified = True
@@ -358,9 +398,14 @@ def downvote():
 
         #update RDS
         query= f"UPDATE POSTS set coins=coins-1 where postID=%s"
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query, (postID))
+        rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+        try:
+            with rds_con:
+                cur = rds_con.cursor()
+                cur.execute(query, (postID))
+            rds_con.commit()
+        finally:
+            rds_con.close()
 
         voted.remove(postID)
         session.modified = True
@@ -373,16 +418,21 @@ def downvote():
 def deletePost(postID):
     username = session[constants.PROFILE_KEY]['name']
 
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     query= f"SELECT user from POSTS where postID='{postID}'"
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query)
-        owner = cur.fetchone()[0]
-        if owner == username:
-            query = f"DELETE FROM POSTS where postID='{postID}'"
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
             cur.execute(query)
-            query = f"DELETE FROM COMMENTS where postID='{postID}'"
-            cur.execute(query)
+            owner = cur.fetchone()[0]
+            if owner == username:
+                query = f"DELETE FROM POSTS where postID='{postID}'"
+                cur.execute(query)
+                query = f"DELETE FROM COMMENTS where postID='{postID}'"
+                cur.execute(query)
+        rds_con.commit()
+    finally:
+        rds_con.close()
     
     return redirect(url_for('home'))
 
@@ -542,32 +592,36 @@ def feed():
     allParams.extend(users)
     query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
 
-    with rds_con:
-        cur = rds_con.cursor()
-        cur.execute(query, tuple(allParams))
-
-    for row in cur.fetchall():
-        postID = row[0]
-        game = row[3]
-        games.add(game)
-        newPost = Post(row[1], game, row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted), normalize(game))
-        postRefs[postID] = newPost 
-        posts.append(newPost)
-
-    games = [(game, normalize(game)) for game in games]
-
-    if len(posts) > 0:
-        placeholder = '%s'
-        placeholders = ', '.join(placeholder for postID in postRefs.keys())
-        query = f"SELECT postID, commentID, user, text, createdtime FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
         with rds_con:
             cur = rds_con.cursor()
-            cur.execute(query, tuple(postRefs.keys()))
+            cur.execute(query, tuple(allParams))
 
         for row in cur.fetchall():
             postID = row[0]
-            comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]))
-            postRefs[postID].comments.append(comment)
+            game = row[3]
+            games.add(game)
+            newPost = Post(row[1], game, row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted), normalize(game))
+            postRefs[postID] = newPost 
+            posts.append(newPost)
+
+        games = [(game, normalize(game)) for game in games]
+
+        if len(posts) > 0:
+            placeholder = '%s'
+            placeholders = ', '.join(placeholder for postID in postRefs.keys())
+            query = f"SELECT postID, commentID, user, text, createdtime FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
+            with rds_con:
+                cur = rds_con.cursor()
+                cur.execute(query, tuple(postRefs.keys()))
+
+            for row in cur.fetchall():
+                postID = row[0]
+                comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]))
+                postRefs[postID].comments.append(comment)
+    finally:
+        rds_con.close()
 
     return render_template('feed.html', posts=posts, screen_name=screen_name, games=games, following=following)
 
