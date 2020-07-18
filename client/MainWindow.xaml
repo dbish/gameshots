@@ -1,0 +1,31 @@
+﻿<Window x:Class="GGShot.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:WPFMediaKit="clr-namespace:WPFMediaKit.DirectShow.MediaPlayers;assembly=WPFMediaKit"
+        xmlns:local="clr-namespace:GGShot"
+        mc:Ignorable="d"
+        Title="MainWindow" Width="1024" Height="768">
+    <Grid>
+        <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="{Binding BrowseVisibility}" ItemsSource="{Binding BrowseItems}">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Image Source="{Binding ItemSource}" MaxWidth="320" MaxHeight="200"/>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <DockPanel Visibility="{Binding TrimVisibility}">
+            <Button Command="{Binding SaveGif}" DockPanel.Dock="Bottom">Save as gif</Button>
+            <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipStart}" Maximum="{Binding ClipLength}"/>
+            <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipEnd}" Maximum="{Binding ClipLength}"/>
+            <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipCurrent}" Maximum="{Binding ClipLength}"/>
+            <MediaElement Name="mediaElement" Height="400" ScrubbingEnabled="True" Source="{Binding MediaSource}" />
+        </DockPanel>
+    </Grid>
+</Window>
