@@ -31,7 +31,11 @@ namespace GGShot
             m_viewModel = new MainWindowViewModel();
             DataContext = m_viewModel;
             m_viewModel.MediaElement = mediaElement;
-            //m_viewModel.DoLogon();
+        }
+
+        private void ListViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            m_viewModel.ItemDoubleClicked(sender);
         }
     }
 }
