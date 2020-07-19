@@ -53,8 +53,7 @@ namespace GGShot
             Auth0ClientOptions clientOptions = new Auth0ClientOptions
             {
                 Domain = "gameshots.us.auth0.com",
-                ClientId = "JIUeWK5S5MLYsrSV9z5Fl2nBirEq2aI0",
-                ClientSecret = "UUPRXTwI7EdDzcoCXcVZFa0Okmtsz3CGsDFdvhiKAwT2c383PIv26XuWOUo_QIFI",
+                ClientId = "oL1BF2g684pdiJLMw80vwZqeNoPony18",
                 RedirectUri = "http://gameshots.gg/callback",
             };
             clientOptions.PostLogoutRedirectUri = clientOptions.RedirectUri;
