@@ -57,8 +57,11 @@ namespace GGShot
                 RedirectUri = "http://gameshots.gg/callback",
             };
             clientOptions.PostLogoutRedirectUri = clientOptions.RedirectUri;
+            
+            var extraParameters = new Dictionary<string, string>();
+            extraParameters.Add("audience", "http://gameshots.gg/api");
             var client = new Auth0Client(clientOptions);
-            var loginResult = await client.LoginAsync();
+            var loginResult = await client.LoginAsync(extraParameters);
         }
 
         private void OnTimer(object sender, EventArgs e)

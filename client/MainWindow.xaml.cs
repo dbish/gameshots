@@ -31,8 +31,6 @@ namespace GGShot
             m_viewModel = new MainWindowViewModel();
             DataContext = m_viewModel;
             m_viewModel.MediaElement = mediaElement;
-            //m_viewModel.SetFile(@"C:\Users\timmi\Videos\Captures\ASTRONEER 2020-03-19 22-05-10.mp4");
-
             //m_viewModel.DoLogon();
         }
     }
