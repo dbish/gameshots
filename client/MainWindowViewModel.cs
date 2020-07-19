@@ -29,7 +29,7 @@ namespace GGShot
         {
             m_timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Normal, OnTimer, Dispatcher.CurrentDispatcher);
             SaveGif = new DelegateCommand(DoSaveGif);
-            var capturesDir = Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\Videos\Captures");
+            var capturesDir = Windows.Media.Capture.AppCaptureManager.GetCurrentSettings().AppCaptureDestinationFolder.Path;
             var files = Directory.GetFiles(capturesDir, "*.png");
             foreach (var file in files)
             {
