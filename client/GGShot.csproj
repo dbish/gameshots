@@ -64,8 +64,15 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="BrowseItemViewModel.cs" />
+    <Compile Include="Controls\GGLogo.xaml.cs">
+      <DependentUpon>GGLogo.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Util\BindableBase.cs" />
     <Compile Include="Util\DelegateCommand.cs" />
+    <Page Include="Controls\GGLogo.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

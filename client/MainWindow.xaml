@@ -3,29 +3,44 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:GGShot.Controls"
         xmlns:WPFMediaKit="clr-namespace:WPFMediaKit.DirectShow.MediaPlayers;assembly=WPFMediaKit"
         xmlns:local="clr-namespace:GGShot"
         mc:Ignorable="d"
         Title="MainWindow" Width="1024" Height="768">
     <Grid>
-        <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="{Binding BrowseVisibility}" ItemsSource="{Binding BrowseItems}">
-            <ListView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ListView.ItemsPanel>
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <Image Source="{Binding ItemSource}" MaxWidth="320" MaxHeight="200"/>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-        <DockPanel Visibility="{Binding TrimVisibility}">
-            <Button Command="{Binding SaveGif}" DockPanel.Dock="Bottom">Save as gif</Button>
-            <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipStart}" Maximum="{Binding ClipLength}"/>
-            <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipEnd}" Maximum="{Binding ClipLength}"/>
-            <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipCurrent}" Maximum="{Binding ClipLength}"/>
-            <MediaElement Name="mediaElement" Height="400" ScrubbingEnabled="True" Source="{Binding MediaSource}" />
+    <DockPanel>
+            <DockPanel.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Offset="0.1" Color="#343A40"/>
+                    <GradientStop Offset="0.101" Color="Black"/>
+                </LinearGradientBrush>
+            </DockPanel.Background>
+        <DockPanel DockPanel.Dock="Top" LastChildFill="False">
+            <controls:GGLogo Width="100" Margin="20" DockPanel.Dock="Left"/>
+            <Button DockPanel.Dock="Right" Width="200" Margin="20">Logon control goes here</Button>
         </DockPanel>
+        <Grid>
+            <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="{Binding BrowseVisibility}" ItemsSource="{Binding BrowseItems}">
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Image Source="{Binding ItemSource}" MaxWidth="320" MaxHeight="200"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <DockPanel Visibility="{Binding TrimVisibility}">
+                <Button Command="{Binding SaveGif}" DockPanel.Dock="Bottom">Save as gif</Button>
+                <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipStart}" Maximum="{Binding ClipLength}"/>
+                <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipEnd}" Maximum="{Binding ClipLength}"/>
+                <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipCurrent}" Maximum="{Binding ClipLength}"/>
+                <MediaElement Name="mediaElement" Height="400" ScrubbingEnabled="True" Source="{Binding MediaSource}" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
     </Grid>
 </Window>
