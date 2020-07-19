@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -20,7 +21,7 @@ namespace GGShot
         Browse,
         Trim,
         Post,
-        LoggingIn
+        Busy
     }
 
     class MainWindowViewModel : BindableBase
@@ -35,6 +36,7 @@ namespace GGShot
         private BrowseItemViewModel m_postItem;
         private string m_postComment;
         private LoginResult m_loginResult;
+        private string m_busyText;
 
         public MainWindowViewModel()
         {
@@ -54,7 +56,8 @@ namespace GGShot
         private async void DoLogon()
         {
             var lastMode = CurrentMode;
-            CurrentMode = MainWindowModes.LoggingIn;
+            BusyText = "Logging in...";
+            CurrentMode = MainWindowModes.Busy;
             try
             {
                 await DoLogonAsync();
@@ -67,16 +70,38 @@ namespace GGShot
 
         private async void DoPost()
         {
+            CurrentMode = MainWindowModes.Busy;
             if (!IsLoggedIn)
             {
+                BusyText = "Logging in...";
                 await DoLogonAsync();
             }
 
             if (IsLoggedIn)
             {
+                BusyText = "Posting screenshot...";
+                using (HttpClient client = new HttpClient())
+                {
+                    var imagePath = PostItem.ItemSource.LocalPath;
+                    var fileContent = new ByteArrayContent(File.ReadAllBytes(imagePath));
+                    client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_loginResult.AccessToken);
+                    var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
+                    //var response = await client.PostAsync("http://ec2-54-188-110-37.us-west-2.compute.amazonaws.com/api/createPost ", new MultipartFormDataContent()
+                    {
+                        {fileContent, "file", Path.GetFileName(imagePath)},
+                        {new StringContent("C# of thieves"), "game"},
+                        {new StringContent(PostComment), "comment"},
+                        {new StringContent(m_loginResult.User.Identity.Name), "username"}
+                    });
 
-                CurrentMode = MainWindowModes.Browse;
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+
+                }
+
+                    //client.PostAsync()
             }
+
+            CurrentMode = MainWindowModes.Browse;
         }
 
         private void DoEscape()
@@ -188,9 +213,9 @@ namespace GGShot
             get => m_currentMode == MainWindowModes.Post ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        public Visibility LoggingInVisibility
+        public Visibility BusyVisibility
         {
-            get => m_currentMode == MainWindowModes.LoggingIn ? Visibility.Visible : Visibility.Collapsed;
+            get => m_currentMode == MainWindowModes.Busy ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private MainWindowModes CurrentMode
@@ -202,7 +227,7 @@ namespace GGShot
                 OnPropertyChanged(nameof(BrowseVisibility));
                 OnPropertyChanged(nameof(TrimVisibility));
                 OnPropertyChanged(nameof(PostVisibility));
-                OnPropertyChanged(nameof(LoggingInVisibility));
+                OnPropertyChanged(nameof(BusyVisibility));
             }
         }
 
@@ -222,6 +247,12 @@ namespace GGShot
         {
             get => m_postComment;
             set => SetProperty(ref m_postComment, value);
+        }
+
+        public string BusyText
+        {
+            get => m_busyText;
+            set => SetProperty(ref m_busyText, value);
         }
 
         public DelegateCommand SaveGif { get; private set; }

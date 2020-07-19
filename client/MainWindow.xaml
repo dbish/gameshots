@@ -57,8 +57,8 @@
                     <TextBox Text="{Binding PostComment}" AcceptsReturn="True" DockPanel.Dock="Bottom"/>
                     <Image Source="{Binding PostItem.ItemSource}"/>
                 </DockPanel>
-                <Grid Visibility="{Binding LoggingInVisibility}">
-                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="100" Foreground="#B214EA">Logging in...</TextBlock>
+                <Grid Visibility="{Binding BusyVisibility}">
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="100" Foreground="#B214EA" Text="{Binding BusyText}"/>
                 </Grid>
             </Grid>
         </DockPanel>
