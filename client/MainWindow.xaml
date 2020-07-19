@@ -9,19 +9,23 @@
         mc:Ignorable="d"
         Title="MainWindow" Width="1024" Height="768">
     <Grid>
-    <DockPanel>
+    <DockPanel Background="Black">
+        <DockPanel DockPanel.Dock="Top" LastChildFill="False">
             <DockPanel.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Offset="0.1" Color="#343A40"/>
-                    <GradientStop Offset="0.101" Color="Black"/>
+                    <GradientStop Offset="0.65" Color="#343A40"/>
+                    <GradientStop Offset="0.651" Color="Black"/>
                 </LinearGradientBrush>
             </DockPanel.Background>
-        <DockPanel DockPanel.Dock="Top" LastChildFill="False">
             <controls:GGLogo Width="100" Margin="20" DockPanel.Dock="Left"/>
             <Button DockPanel.Dock="Right" Width="200" Margin="20">Logon control goes here</Button>
         </DockPanel>
         <Grid>
-            <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="{Binding BrowseVisibility}" ItemsSource="{Binding BrowseItems}">
+            <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                      Visibility="{Binding BrowseVisibility}"
+                      ItemsSource="{Binding BrowseItems}"
+                      FocusVisualStyle="{x:Null}"
+                      Background="Transparent">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel Orientation="Horizontal" />
