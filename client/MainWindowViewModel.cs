@@ -1,10 +1,12 @@
 ﻿using Auth0.OidcClient;
 using GGShot.Util;
+using IdentityModel.OidcClient;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,26 +16,110 @@ using WPFMediaKit.DirectShow.MediaPlayers;
 
 namespace GGShot
 {
+    enum MainWindowModes
+    {
+        Browse,
+        Trim,
+        Post,
+        Busy
+    }
+
     class MainWindowViewModel : BindableBase
     {
         private int m_clipEnd;
         private int m_clipLength;
         private int m_clipCurrent;
-        private Visibility m_browseVisibility = Visibility.Visible;
-        private Visibility m_trimVisibility = Visibility.Hidden;
+        private MainWindowModes m_currentMode = MainWindowModes.Browse;
         DispatcherTimer m_timer;
         Uri m_mediaSource;
         MediaElement m_mediaElement;
+        private BrowseItemViewModel m_postItem;
+        private string m_postComment;
+        private LoginResult m_loginResult;
+        private string m_busyText;
 
         public MainWindowViewModel()
         {
             m_timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Normal, OnTimer, Dispatcher.CurrentDispatcher);
             SaveGif = new DelegateCommand(DoSaveGif);
+            EscapeCommand = new DelegateCommand(DoEscape);
+            PostImage = new DelegateCommand(DoPost);
+            LogonCommand = new DelegateCommand(DoLogon);
             var capturesDir = Windows.Media.Capture.AppCaptureManager.GetCurrentSettings().AppCaptureDestinationFolder.Path;
             var files = Directory.GetFiles(capturesDir, "*.png");
             foreach (var file in files)
             {
                 BrowseItems.Add(new BrowseItemViewModel(file));
+            }
+        }
+
+        private async void DoLogon()
+        {
+            var lastMode = CurrentMode;
+            BusyText = "Logging in...";
+            CurrentMode = MainWindowModes.Busy;
+            try
+            {
+                await DoLogonAsync();
+            }
+            finally
+            {
+                CurrentMode = lastMode;
+            }
+        }
+
+        private async void DoPost()
+        {
+            CurrentMode = MainWindowModes.Busy;
+            if (!IsLoggedIn)
+            {
+                BusyText = "Logging in...";
+                await DoLogonAsync();
+            }
+
+            if (IsLoggedIn)
+            {
+                BusyText = "Posting screenshot...";
+                using (HttpClient client = new HttpClient())
+                {
+                    var imagePath = PostItem.ItemSource.LocalPath;
+                    var fileContent = new ByteArrayContent(File.ReadAllBytes(imagePath));
+                    client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_loginResult.AccessToken);
+                    var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
+                    //var response = await client.PostAsync("http://ec2-54-188-110-37.us-west-2.compute.amazonaws.com/api/createPost ", new MultipartFormDataContent()
+                    {
+                        {fileContent, "file", Path.GetFileName(imagePath)},
+                        {new StringContent("C# of thieves"), "game"},
+                        {new StringContent(PostComment), "comment"},
+                        {new StringContent(m_loginResult.User.Identity.Name), "username"}
+                    });
+
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+
+                }
+
+                    //client.PostAsync()
+            }
+
+            CurrentMode = MainWindowModes.Browse;
+        }
+
+        private void DoEscape()
+        {
+            if (CurrentMode == MainWindowModes.Post)
+            {
+                CurrentMode = MainWindowModes.Browse;
+            }
+        }
+
+        internal void ItemDoubleClicked(object sender)
+        {
+            var senderElement = sender as ListViewItem;
+            PostItem = senderElement.DataContext as BrowseItemViewModel;
+            if (PostItem != null)
+            {
+                PostComment = "";
+                CurrentMode = MainWindowModes.Post;
             }
         }
 
@@ -48,7 +134,7 @@ namespace GGShot
             ClipEnd = ClipLength;
         }
 
-        internal async void DoLogon()
+        internal async Task DoLogonAsync()
         {
             Auth0ClientOptions clientOptions = new Auth0ClientOptions
             {
@@ -61,7 +147,7 @@ namespace GGShot
             var extraParameters = new Dictionary<string, string>();
             extraParameters.Add("audience", "http://gameshots.gg/api");
             var client = new Auth0Client(clientOptions);
-            var loginResult = await client.LoginAsync(extraParameters);
+            m_loginResult = await client.LoginAsync(extraParameters);
         }
 
         private void OnTimer(object sender, EventArgs e)
@@ -114,14 +200,35 @@ namespace GGShot
 
         public Visibility BrowseVisibility
         {
-            get => m_browseVisibility;
-            set => SetProperty(ref m_browseVisibility, value);
+            get => m_currentMode == MainWindowModes.Browse ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public Visibility TrimVisibility
         {
-            get => m_trimVisibility;
-            set => SetProperty(ref m_trimVisibility, value);
+            get => m_currentMode == MainWindowModes.Trim ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public Visibility PostVisibility
+        {
+            get => m_currentMode == MainWindowModes.Post ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public Visibility BusyVisibility
+        {
+            get => m_currentMode == MainWindowModes.Busy ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private MainWindowModes CurrentMode
+        {
+            get => m_currentMode;
+            set
+            {
+                m_currentMode = value;
+                OnPropertyChanged(nameof(BrowseVisibility));
+                OnPropertyChanged(nameof(TrimVisibility));
+                OnPropertyChanged(nameof(PostVisibility));
+                OnPropertyChanged(nameof(BusyVisibility));
+            }
         }
 
         public Uri MediaSource
@@ -131,8 +238,29 @@ namespace GGShot
         }
 
         public ObservableCollection<BrowseItemViewModel> BrowseItems { get; } = new ObservableCollection<BrowseItemViewModel>();
-            
+        public BrowseItemViewModel PostItem
+        {
+            get => m_postItem;
+            set => SetProperty(ref m_postItem, value);
+        }
+        public string PostComment
+        {
+            get => m_postComment;
+            set => SetProperty(ref m_postComment, value);
+        }
+
+        public string BusyText
+        {
+            get => m_busyText;
+            set => SetProperty(ref m_busyText, value);
+        }
+
         public DelegateCommand SaveGif { get; private set; }
+        public DelegateCommand EscapeCommand { get; private set; }
+        public DelegateCommand PostImage { get; private set; }
+        public DelegateCommand LogonCommand { get; }
+
+        public bool IsLoggedIn => m_loginResult != null && !m_loginResult.IsError;
 
         void DoSaveGif()
         {

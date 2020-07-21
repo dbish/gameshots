@@ -8,43 +8,59 @@
         xmlns:local="clr-namespace:GGShot"
         mc:Ignorable="d"
         Title="MainWindow" Width="1024" Height="768">
+    <Window.InputBindings>
+        <KeyBinding Key="Esc" Command="{Binding EscapeCommand}"/>
+    </Window.InputBindings>
     <Grid>
-    <DockPanel Background="Black">
-        <DockPanel DockPanel.Dock="Top" LastChildFill="False">
-            <DockPanel.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Offset="0.65" Color="#343A40"/>
-                    <GradientStop Offset="0.651" Color="Black"/>
-                </LinearGradientBrush>
-            </DockPanel.Background>
-            <controls:GGLogo Width="100" Margin="20" DockPanel.Dock="Left"/>
-            <Button DockPanel.Dock="Right" Width="200" Margin="20">Logon control goes here</Button>
-        </DockPanel>
-        <Grid>
-            <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                      Visibility="{Binding BrowseVisibility}"
-                      ItemsSource="{Binding BrowseItems}"
-                      FocusVisualStyle="{x:Null}"
-                      Background="Transparent">
-                <ListView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Image Source="{Binding ItemSource}" MaxWidth="320" MaxHeight="200"/>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-            <DockPanel Visibility="{Binding TrimVisibility}">
-                <Button Command="{Binding SaveGif}" DockPanel.Dock="Bottom">Save as gif</Button>
-                <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipStart}" Maximum="{Binding ClipLength}"/>
-                <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipEnd}" Maximum="{Binding ClipLength}"/>
-                <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipCurrent}" Maximum="{Binding ClipLength}"/>
-                <MediaElement Name="mediaElement" Height="400" ScrubbingEnabled="True" Source="{Binding MediaSource}" />
+        <DockPanel Background="Black">
+            <DockPanel DockPanel.Dock="Top" LastChildFill="False">
+                <DockPanel.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Offset="0.65" Color="#343A40"/>
+                        <GradientStop Offset="0.651" Color="Black"/>
+                    </LinearGradientBrush>
+                </DockPanel.Background>
+                <controls:GGLogo Width="100" Margin="20" DockPanel.Dock="Left"/>
+                <Button DockPanel.Dock="Right" Width="200" Margin="20" Command="{Binding LogonCommand}">Logon control goes here</Button>
             </DockPanel>
-        </Grid>
-    </DockPanel>
+            <Grid>
+                <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          Visibility="{Binding BrowseVisibility}"
+                          ItemsSource="{Binding BrowseItems}"
+                          FocusVisualStyle="{x:Null}"
+                          Background="Transparent">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Image Source="{Binding ItemSource}" MaxWidth="320" MaxHeight="200"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListViewItem}">
+                            <EventSetter Event="MouseDoubleClick" Handler="ListViewItem_MouseDoubleClick"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+                <DockPanel Visibility="{Binding TrimVisibility}">
+                    <Button Command="{Binding SaveGif}" DockPanel.Dock="Bottom">Save as gif</Button>
+                    <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipStart}" Maximum="{Binding ClipLength}"/>
+                    <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipEnd}" Maximum="{Binding ClipLength}"/>
+                    <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipCurrent}" Maximum="{Binding ClipLength}"/>
+                    <MediaElement Name="mediaElement" Height="400" ScrubbingEnabled="True" Source="{Binding MediaSource}" />
+                </DockPanel>
+                <DockPanel Visibility="{Binding PostVisibility}">
+                    <Button Command="{Binding PostImage}" DockPanel.Dock="Bottom">Post</Button>
+                    <TextBox Text="{Binding PostComment}" AcceptsReturn="True" DockPanel.Dock="Bottom"/>
+                    <Image Source="{Binding PostItem.ItemSource}"/>
+                </DockPanel>
+                <Grid Visibility="{Binding BusyVisibility}">
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="100" Foreground="#B214EA" Text="{Binding BusyText}"/>
+                </Grid>
+            </Grid>
+        </DockPanel>
     </Grid>
 </Window>
