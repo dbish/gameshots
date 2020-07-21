@@ -4,7 +4,10 @@
 <script src="{{url_for('static', filename='viewProfile.js')}}"></script>
 <div class="container">
 	<div>
-		<h2 class="text-light text-center">{{username}}
+		<h2 class="text-light text-center">{{display_name}}
+		{% if display_name != username %}
+		(@{{username}})
+		{% endif %}
 		{% if username != myusername %}
 			</h2>
 			{% if username in following %}
@@ -17,6 +20,7 @@
 				<button onclick="unfollowUser('{{username}}')" id="unfollowButton" type="button" class="btn btn-primary" style="display:none">unfollow</button>
 			{% endif %}
 		{% else %}
+		<a href="{{url_for('settings')}}"><i class="fa fa-cog" aria-hidden="true"></i></a>
 		<a href="{{url_for('logout')}}" class="badge badge-light badge-pill">logout</a>
 			 </h2>
 		{% endif %}

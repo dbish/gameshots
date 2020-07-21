@@ -30,8 +30,8 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameNormalized'])
-Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameNormalized', 'display_name'])
+Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color', 'display_name'])
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -111,6 +111,7 @@ def getUserInfo(username, email):
     following = []
     followers = []
     voted = []
+    display_name = ''
     filtered_following = []
     table = dynamodb.Table('gg_users');
     response = table.get_item(
@@ -120,6 +121,8 @@ def getUserInfo(username, email):
             )
 
     if 'Item' in response:
+        if 'display_name' in response['Item']:
+            display_name = response['Item']['display_name']
         if 'following' in response['Item']:
             following = response['Item']['following']
         if 'followers' in response['Item']:
@@ -140,7 +143,7 @@ def getUserInfo(username, email):
                     }
                 )
         flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
-    return following, followers, voted, filtered_following
+    return following, followers, voted, filtered_following, display_name
 
 def requires_auth(f):
     @wraps(f)
@@ -228,16 +231,24 @@ def private():
 def api_create_post():
     completed = False
     result = request.form
+    print(result)
     try:
+        print('files')
+        print(request.files)
         username = request.form['username'] 
         if 'file' in request.files:
             file = request.files['file']
+            print('found file')
             game = request.form['game']
+            print(game)
             comment = request.form['comment']
+            print('comment')
             filename = file.filename
             if 'completed' in request.form:
                 completed = True
+            print('got here')
             createPost(username, file, game, comment, completed)
+            print('did not get here')
             return jsonify('post created')
         else:
             return jsonify('missing file')
@@ -291,6 +302,40 @@ def createPost(user, picture, game, info, completed):
     finally:
         rds_con.close()
 
+@app.route('/settings', methods=['POST', 'GET'])
+@requires_auth
+def settings():
+    username = session[constants.PROFILE_KEY]['name']
+    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('gg_users');
+    displayNames = {}
+    getDisplayName(username, displayNames)
+    print(displayNames)
+    if request.method == 'POST':
+        result = request.form
+        display_name = request.form['display_name']
+        response = table.update_item(
+                Key={'username':username},
+                UpdateExpression="SET display_name = :x",
+                ExpressionAttributeValues={
+                    ':x':display_name,
+                    }
+                )
+        return redirect(url_for('home'))
+
+    response = table.get_item(
+            Key={
+                'username':username
+                }
+            )
+
+    if 'Item' in response:
+        if 'display_name' in response['Item']:
+            display_name = response['Item']['display_name']
+        else:
+            display_name = username
+    
+    return render_template('settings.html', username=username, display_name=display_name)
     
 @app.route('/create', methods=['POST', 'GET'])
 @requires_auth
@@ -317,7 +362,7 @@ def callback_handling():
     resp = auth0.get('userinfo')
     userinfo = resp.json()
 
-    following, followers, voted, filtered_following = getUserInfo(userinfo['name'], userinfo['email'])
+    following, followers, voted, filtered_following, display_name = getUserInfo(userinfo['name'], userinfo['email'])
 
     session[constants.JWT_PAYLOAD] = userinfo
     session[constants.PROFILE_KEY] = {
@@ -327,7 +372,8 @@ def callback_handling():
         'following':following,
         'followers':followers,
         'filtered_following':filtered_following,
-        'voted':voted
+        'voted':voted,
+        'display_name':display_name
     }
     return redirect('/')
 
@@ -382,6 +428,7 @@ def viewProfile(username):
     games, completed_games = getUserGames(username)
     filtered_following = session[constants.PROFILE_KEY]['filtered_following']
     myusername = session[constants.PROFILE_KEY]['name']
+    display_name = session[constants.PROFILE_KEY]['display_name']
     if request.method == 'POST':
         data = request.form
         all_games = games[:]
@@ -399,7 +446,7 @@ def viewProfile(username):
     filtered_games = []
     if username in filtered_following:
         filtered_games = filtered_following[username]
-    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games, filtered=filtered_games) 
+    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games, filtered=filtered_games, display_name=getDisplayName(username, {})) 
 
 @app.route('/post/<postid>')
 @requires_auth
@@ -417,7 +464,10 @@ def viewPost(postid):
             cur.execute(query)
 
         info = cur.fetchone()
-        post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted), normalize(info[2]))
+        user = info[0]
+        displayNames = {}
+        display_name = getDisplayName(user, displayNames)
+        post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted), normalize(info[2]), display_name)
 
         query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
         with rds_con:
@@ -425,7 +475,9 @@ def viewPost(postid):
             cur.execute(query)
 
         for row in cur.fetchall():
-            post.comments.append(Comment(row[1], row[2], row[3], row[0], getColor(row[1])))
+            user = row[1]
+            display_name = getDisplayName(user, displayNames)
+            post.comments.append(Comment(row[1], row[2], row[3], row[0], getColor(row[1]), display_name))
     finally:
         rds_con.close()
 
@@ -597,7 +649,20 @@ def updateFilter(username, following, games, curFilter):
 
 
 
-
+def getDisplayName(username, cachedNames):
+    if username not in cachedNames:
+        dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+        table = dynamodb.Table('gg_users');
+        display_name = username
+        response = table.get_item(
+                Key={'username':username},
+                AttributesToGet=['display_name'])
+        if 'Item' in response:
+            if 'display_name' in response['Item']:
+                display_name = response['Item']['display_name']
+        cachedNames[username] = display_name
+    return cachedNames[username]
+    
 
 @requires_auth
 @app.route('/follow', methods=['POST'])
@@ -704,6 +769,7 @@ def feed():
     posts = []
     postRefs = {}
     screen_name = session[constants.PROFILE_KEY]['name']
+    display_name = session[constants.PROFILE_KEY]['name']
     email = session[constants.PROFILE_KEY]['email']
     #following = getUserInfo(screen_name, email)
     following = session[constants.PROFILE_KEY]['following']
@@ -714,6 +780,7 @@ def feed():
     allParams = []
     games = set()
 
+    displayNames = {}
     #filtered users
     query = ''
     for user in filtered_following:
@@ -740,7 +807,9 @@ def feed():
             postID = row[0]
             game = row[3]
             games.add(game)
-            newPost = Post(row[1], game, row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted), normalize(game))
+            user = row[1]
+            display_name = getDisplayName(user, displayNames)
+            newPost = Post(user, game, row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted), normalize(game), display_name)
             postRefs[postID] = newPost 
             posts.append(newPost)
 
@@ -756,12 +825,14 @@ def feed():
 
             for row in cur.fetchall():
                 postID = row[0]
-                comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]))
+                user = row[2]
+                display_name = getDisplayName(user, displayNames)
+                comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]), display_name)
                 postRefs[postID].comments.append(comment)
     finally:
         rds_con.close()
 
-    return render_template('feed.html', posts=posts, screen_name=screen_name, games=games, following=following)
+    return render_template('feed.html', posts=posts, screen_name=screen_name, games=games, following=following, display_name=display_name)
 
 
 if __name__=='__main__':

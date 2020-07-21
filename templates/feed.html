@@ -12,7 +12,11 @@
 	<div class="card {{post.gameNormalized}} bg-dark" id={{post.id}}>
 	{% endif %}
 			<div class="card-header">
+				{% if post.display_name == post.username%}
 				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				{% else %}
+				{{post.display_name}} <a href="{{url_for('viewProfile',username=post.username)}}">@{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				{% endif %}
 				<div class="coins">{{post.coins}}</i></div>
 			</div>
 			<a href="{{url_for('viewPost', postid=post.id)}}"><img src="{{post.image}}" class="card-img-top"></a>
@@ -42,7 +46,7 @@
 					{% elif comment.username in following %}
 					<i class="fa fa-gem"></i>
 					{% endif %}
-					<a href="/gamer/{{comment.username}}" style="color:{{comment.color}}">{{comment.username}}</a>: {{comment.text}}
+					<a href="/gamer/{{comment.username}}" style="color:{{comment.color}}">{{comment.display_name}}</a>: {{comment.text}}
 					</li>
 					{% endfor %}
 				</ul>
