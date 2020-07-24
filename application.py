@@ -32,6 +32,7 @@ app = application
 
 Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameNormalized', 'display_name'])
 Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color', 'display_name'])
+Notification = collections.namedtuple("Notification", ['id', 'username', 'link', 'info', 'timestamp'])
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -160,12 +161,9 @@ def api_requires_auth(f):
     def decorated(*args, **kwargs):
         token = get_token_auth_header()
         jsonurl = urlopen("https://"+AUTH0_DOMAIN+"/.well-known/jwks.json")
-        print(token)
         jwks = json.loads(jsonurl.read())
         unverified_header = jwt.get_unverified_header(token)
         rsa_key = {}
-        print('jwks:')
-        print(jwks)
         for key in jwks["keys"]:
             if key["kid"] == unverified_header["kid"]:
                 rsa_key = {
@@ -175,13 +173,9 @@ def api_requires_auth(f):
                     "n": key["n"],
                     "e": key["e"]
                 }
-        print(rsa_key)
         if rsa_key:
-            print('have rsa')
             try:
                 AUTH0_AUDIENCE = 'http://gameshots.gg/api'
-                print(AUTH0_AUDIENCE)
-                print("https://"+AUTH0_DOMAIN+"/")
                 payload = jwt.decode(
                     token,
                     rsa_key,
@@ -231,24 +225,16 @@ def private():
 def api_create_post():
     completed = False
     result = request.form
-    print(result)
     try:
-        print('files')
-        print(request.files)
         username = request.form['username'] 
         if 'file' in request.files:
             file = request.files['file']
-            print('found file')
             game = request.form['game']
-            print(game)
             comment = request.form['comment']
-            print('comment')
             filename = file.filename
             if 'completed' in request.form:
                 completed = True
-            print('got here')
             createPost(username, file, game, comment, completed)
-            print('did not get here')
             return jsonify('post created')
         else:
             return jsonify('missing file')
@@ -272,6 +258,45 @@ def createComment(user, text, postID):
 
     return commentID
 
+def addNotification(user, link, info):
+    notificationID = str(uuid.uuid4())
+    query = f"INSERT INTO NOTIFICATIONS (ID, user, link, info) VALUES (%s,%s,%s,%s)"
+
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            vals = (notificationID, user, link, info)
+            cur.execute(query, vals) 
+        rds_con.commit()
+    except e:
+        print(e)
+    finally:
+        rds_con.close()
+    
+
+@app.route('/getNotifications')
+@requires_auth
+def getNotifications():
+    user = session[constants.PROFILE_KEY]['name']
+    since = request.args.get('since', 0)
+    result = getNewNotifications(user, since)
+    notifications = [Notification(row[0], user, row[1], row[2], row[3].strftime("%Y-%m-%d %H:%M:%S")) for row in result]
+    return jsonify(notifications) 
+
+
+def getNewNotifications(user, timestamp):
+    query = f"SELECT ID, link, info, createdtime FROM NOTIFICATIONS where user='{user}' and createdtime > '{timestamp}' ORDER BY createdtime limit 42"
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+    finally:
+        rds_con.close()
+
+    notifications = cur.fetchall() 
+    return notifications
 
 def createPost(user, picture, game, info, completed):
     postID = str(uuid.uuid4())
@@ -283,7 +308,6 @@ def createPost(user, picture, game, info, completed):
     if len(filename) > 100:
         filename = filename[-100:]
     filename = prefix + filename
-    print(filename)
     bucket.upload_fileobj(picture, filename, ExtraArgs={'ACL':'public-read'})
     s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{filename}'
     comp_val = 0
@@ -310,7 +334,6 @@ def settings():
     table = dynamodb.Table('gg_users');
     displayNames = {}
     getDisplayName(username, displayNames)
-    print(displayNames)
     if request.method == 'POST':
         result = request.form
         display_name = request.form['display_name']
@@ -690,6 +713,8 @@ def followUser():
                 },
             ReturnValues="UPDATED_NEW"
             )
+
+    addNotification(follow, url_for('viewProfile', username=username), f"{username} followed you!")
 
     #add to followers
     session.modified = True
