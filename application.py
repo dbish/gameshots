@@ -252,9 +252,23 @@ def createComment(user, text, postID):
             cur = rds_con.cursor()
             cur.execute(query, (commentID, user, postID, text))
         rds_con.commit()
-    finally:
-        rds_con.close()
+    except e:
+        print(e)
 
+    
+    try: 
+        query = f"SELECT user from POSTS where postID='{postID}'"
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+        postOwner = cur.fetchone()[0]
+        print(postOwner)
+
+        addNotification(postOwner, url_for('viewPost', postid=postID), f"{user} commented on your post")
+    except e:
+        print(e)
+
+    rds_con.close()
 
     return commentID
 
@@ -305,7 +319,7 @@ def getNotifications():
 
 
 def getNewNotifications(user, timestamp):
-    query = f"SELECT ID, link, info, createdtime, read_state FROM NOTIFICATIONS where user='{user}' and createdtime > '{timestamp}' ORDER BY createdtime limit 42"
+    query = f"SELECT ID, link, info, createdtime, read_state FROM NOTIFICATIONS where user='{user}' and createdtime > '{timestamp}' ORDER BY createdtime DESC limit 100"
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     try:
         with rds_con:

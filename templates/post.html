@@ -2,6 +2,9 @@
 {% block content %}
 <link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
 <script src="{{url_for('static', filename='feed.js')}}"></script>
+        <script type="text/javascript">
+                username = "{{screen_name}}";
+        </script>
 <div class="container">
 	{% if post.completed == 1 %}
 	<div class="card border border-warning post bg-dark" id={{post.id}}>

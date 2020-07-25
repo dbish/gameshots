@@ -26,13 +26,13 @@ hr {
 	color:white;
 	padding:5px;
 }
-ul {
+#completedGames ul {
 	list-style:none;
 	padding:0;
 	margin-left:0;
 }
 
-ul li:before {
+#completedGames ul li:before {
 	content:' ✓ ';
 	left: 0;
 	width: 1em;

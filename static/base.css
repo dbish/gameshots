@@ -23,7 +23,7 @@ body {
 
 .popover {
 	background-color:black;
-	max-height:500px;
+	max-height:200px;
 	overflow:auto;
 }
 

@@ -1,4 +1,5 @@
 var newNotifications = [];
+var allNotifications = new Set();
 var since = 0;
 
 function longPoll() {
@@ -16,7 +17,7 @@ function longPoll() {
 	    if (data.length > 0){
 		    console.log(data);
 		    for (i in data){
-			addNotification(data[i]);		
+			addNotification(data[data.length-i-1]);		
 		    }
 		    console.log(newNotifications);
 		    updateNotificationCount(newNotifications.length);
@@ -36,16 +37,23 @@ function longPoll() {
 
 function addNotification(notification){
 	console.log(notification);
-	if (notification[5] == 0){
-		$('#notificationList').append(
-			$('<li>').
-			addClass('unreadNotification').append(
-				$('<a>').attr('href', notification[2]).append(notification[3])));
-		newNotifications.push(notification[0]);
-	}else {
-		$('#notificationList').append(
-			$('<li>').append(
-				$('<a>').attr('href', notification[2]).append(notification[3])));
+	if (allNotifications.has(notification[0])){
+		console.log(notification);
+		console.log('already in list');
+	}
+	else{
+		if (notification[5] == 0){
+			$('#notificationList').prepend(
+				$('<li>').
+				addClass('unreadNotification').append(
+					$('<a>').attr('href', notification[2]).append(notification[3])));
+			newNotifications.push(notification[0]);
+		}else {
+			$('#notificationList').prepend(
+				$('<li>').append(
+					$('<a>').attr('href', notification[2]).append(notification[3])));
+		}
+		allNotifications.add(notification[0]);
 	}
 
 }

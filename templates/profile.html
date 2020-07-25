@@ -2,6 +2,10 @@
 {% block content %}
 <link rel="stylesheet" href="{{url_for('static', filename='profile.css')}}">
 <script src="{{url_for('static', filename='viewProfile.js')}}"></script>
+<script type="text/javascript">
+	username = "{{screen_name}}";
+</script>
+
 <div class="container">
 	<div>
 		<h2 class="text-light text-center">{{display_name}}
