@@ -32,7 +32,7 @@ app = application
 
 Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameNormalized', 'display_name'])
 Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color', 'display_name'])
-Notification = collections.namedtuple("Notification", ['id', 'username', 'link', 'info', 'timestamp'])
+Notification = collections.namedtuple("Notification", ['id', 'username', 'link', 'info', 'timestamp', 'read'])
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -274,6 +274,25 @@ def addNotification(user, link, info):
     finally:
         rds_con.close()
     
+@app.route('/markNotificationsRead', methods=['POST'])
+@requires_auth
+def markNotificationsRead():
+    result = request.form
+    notifications = json.loads(request.form['notifications'])
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    for nID in notifications:
+        query= f"UPDATE NOTIFICATIONS set read_state=1 where ID='{nID}'"
+        try:
+            with rds_con:
+                cur = rds_con.cursor()
+                cur.execute(query)
+        except e:
+            print(e)
+    rds_con.commit()
+    rds_con.close()
+    return jsonify('success')
+
+
 
 @app.route('/getNotifications')
 @requires_auth
@@ -281,12 +300,12 @@ def getNotifications():
     user = session[constants.PROFILE_KEY]['name']
     since = request.args.get('since', 0)
     result = getNewNotifications(user, since)
-    notifications = [Notification(row[0], user, row[1], row[2], row[3].strftime("%Y-%m-%d %H:%M:%S")) for row in result]
+    notifications = [Notification(row[0], user, row[1], row[2], row[3].strftime("%Y-%m-%d %H:%M:%S"), row[4]) for row in result]
     return jsonify(notifications) 
 
 
 def getNewNotifications(user, timestamp):
-    query = f"SELECT ID, link, info, createdtime FROM NOTIFICATIONS where user='{user}' and createdtime > '{timestamp}' ORDER BY createdtime limit 42"
+    query = f"SELECT ID, link, info, createdtime, read_state FROM NOTIFICATIONS where user='{user}' and createdtime > '{timestamp}' ORDER BY createdtime limit 42"
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     try:
         with rds_con:

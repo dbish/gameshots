@@ -21,7 +21,7 @@
 		{% if screen_name is defined %}
 		<a href="{{url_for('create')}}" class="btn btn-outline-light">create post</a>
 		<span class="navbar-text">
-			<button type="button" class="btn btn-link" id="notificationButton"><span id="notificationBell" class="badge badge-pill"><i class="fa fa-satellite-dish fa-2x"></i><span id="notificationCount"></span></span></a></button>
+			<button type="button" class="btn btn-link" id="notificationButton" data-container="body" data-toggle="popover" data-placement="bottom" data-popover-content="#notificationPopover"><span id="notificationBell" class="badge badge-pill"><i class="fa fa-satellite-dish fa-2x"></i><span id="notificationCount"></span></span></a></button>
 			<a href="{{url_for('viewProfile', username=screen_name)}}">
 				<i class="fa fa-user-astronaut fa-2x"></i>
 			</a>
@@ -39,6 +39,13 @@
                         about: gameshots is a project in beta. i hope you like it 🙂 . if you have any issues you can contact <a href="http://twitter.com/diamondbishop">@diamondbishop</a>
                 </span>
         </nav>
+	<div class="hidden" id="notificationPopover">
+		<div class="popover-heading">Recent Notifications</div>
+		<div class="popover-body">
+			<ul id="notificationList">
+			</ul>
+		</div>
+	</div>
 </body>
 </html>
 

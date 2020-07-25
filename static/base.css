@@ -14,3 +14,30 @@ body {
 	background: black;
 }
 
+
+
+.unreadNotification {
+	background:red;
+	border-radius:5px;
+}
+
+.popover {
+	background-color:black;
+	max-height:500px;
+	overflow:auto;
+}
+
+#notificationList {
+	list-style:none;
+	padding-left:0;
+}
+
+
+#notificationList li {
+	margin: 2px;
+}
+
+#notificationList li a {
+	color: white;
+}
+
