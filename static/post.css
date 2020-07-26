@@ -1,5 +1,5 @@
-
-.border {
-        border-width: 10px !important;
+.card.post {
+	max-width: 100%;
 }
+
 

@@ -47,7 +47,7 @@
 	</div>
 
 	<div class="row" >
-		<div class="col-10">
+		<div class="col">
 		{% for post in posts %}
 			<div class="card">
 				{% if post[2]==1 %}
@@ -58,7 +58,7 @@
 			</div>
 		{% endfor %}
 		</div>
-		<div "col-2" id="completedGames">
+		<div "col-1" id="completedGames">
 			<h2>Completed</h2>
 			<ul>
 			{% for game in completed_games %}
