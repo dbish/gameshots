@@ -15,13 +15,11 @@ function longPoll() {
         }).done(function (data, textStatus, jqXHR) {
              // do something with data...
 	    if (data.length > 0){
-		    console.log(data);
 		    for (i in data){
 			addNotification(data[data.length-i-1]);		
 		    }
-		    console.log(newNotifications);
 		    updateNotificationCount(newNotifications.length);
-		    since = data[data.length-1][4];
+		    since = data[0][4];
  	    }
 	   
 
@@ -36,10 +34,8 @@ function longPoll() {
 }
 
 function addNotification(notification){
-	console.log(notification);
 	if (allNotifications.has(notification[0])){
 		console.log(notification);
-		console.log('already in list');
 	}
 	else{
 		if (notification[5] == 0){
