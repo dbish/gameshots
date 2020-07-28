@@ -523,7 +523,7 @@ def viewPost(postid):
         user = info[0]
         displayNames = {}
         display_name = getDisplayName(user, displayNames)
-        post = Post(info[0], info[2], info[1], info[3], info[6], info[4], postid, [], info[5], (postid in voted), normalize(info[2]), display_name)
+        post = Post(info[0], info[2], info[1], info[3], info[6], info[4].strftime("%Y-%m-%d %H:%M:%S"), postid, [], info[5], (postid in voted), normalize(info[2]), display_name)
 
         query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
         with rds_con:
@@ -823,24 +823,40 @@ def getColor(name):
     value = ord(name[0])*len(name)
     return colors[value%len(colors)];
 
+
+@app.route('/scrollFeed', methods=['GET'])
+def scrollFeed():
+    before = request.args.get('before')
+    posts = getPosts(before)
+    return jsonify(posts)
+    
 def feed():
+    screen_name = session[constants.PROFILE_KEY]['name']
+    following = session[constants.PROFILE_KEY]['following']
+    posts = getPosts(None)
+    print(posts[-1])
+    postIDs = [post.id for post in posts]
+    print(postIDs)
+    return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1][5], postIDs=postIDs)
+
+def getPosts(before):
+    print('getting posts')
     posts = []
     postRefs = {}
     screen_name = session[constants.PROFILE_KEY]['name']
-    display_name = session[constants.PROFILE_KEY]['name']
+    print(screen_name)
     email = session[constants.PROFILE_KEY]['email']
-    #following = getUserInfo(screen_name, email)
     following = session[constants.PROFILE_KEY]['following']
     filtered_following = session[constants.PROFILE_KEY]['filtered_following']
     voted = session[constants.PROFILE_KEY]['voted']
     users = following+[screen_name]
     placeholder = '%s'
     allParams = []
-    games = set()
 
     displayNames = {}
     #filtered users
     query = ''
+    print('got here')
     for user in filtered_following:
         filtered_games = filtered_following[user]
         if len(filtered_games) > 0:
@@ -853,7 +869,11 @@ def feed():
 
     placeholders = ', '.join(placeholder for user in users)
     allParams.extend(users)
-    query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders}) ORDER BY createdtime DESC"
+    query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders})"
+    if before:
+        query += f" AND createdtime <= '{before}'"
+    query += " ORDER BY createdtime DESC LIMIT 10"
+    print(query)
 
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     try:
@@ -864,14 +884,12 @@ def feed():
         for row in cur.fetchall():
             postID = row[0]
             game = row[3]
-            games.add(game)
             user = row[1]
             display_name = getDisplayName(user, displayNames)
-            newPost = Post(user, game, row[2], row[4], row[7], row[5], postID, [], row[6], (postID in voted), normalize(game), display_name)
+            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), normalize(game), display_name)
             postRefs[postID] = newPost 
             posts.append(newPost)
 
-        games = [(game, normalize(game)) for game in games]
 
         if len(posts) > 0:
             placeholder = '%s'
@@ -890,8 +908,7 @@ def feed():
     finally:
         rds_con.close()
 
-    return render_template('feed.html', posts=posts, screen_name=screen_name, games=games, following=following, display_name=display_name)
-
+    return posts
 
 if __name__=='__main__':
     application.run(host='0.0.0.0', port='80', debug=True)

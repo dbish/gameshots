@@ -4,10 +4,12 @@
 <script src="{{url_for('static', filename='feed.js')}}"></script>
 	<script type="text/javascript">
 		username = "{{screen_name}}";
+		earliestSeen = "{{earliest}}";
+		postIDs = new Set({{postIDs | tojson}});
 	</script>
 <div class="container">
 	<div class="row">
-	<div class="col-12">
+	<div class="col-12" id="postsDiv">
 	{% for post in posts %}
 	{% if post.completed == 1 %}
 	<div class="card border complete border-warning bg-dark {{post.gameNormalized}}" id={{post.id}}>
@@ -64,18 +66,6 @@
 	</div>
 	{% endfor %}
 	</div>
-	<!--<div id="shownGames" class="bg-dark rounded-left col-1 border">
-		{% for game in games %}
-		<div class="gameToggle border-bottom border-white">
-		{{game[0]}}
-		<label class="switch">
-			<input type="checkbox" checked onchange="toggleGame('{{game[1]}}', this)">
-		  <span class="slider"></span>
-		</label>
-		</div>
-
-		{% endfor %}
-	</div>-->
 	</div>
 </div>
 {% endblock %}
