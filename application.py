@@ -840,11 +840,9 @@ def feed():
     return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1][5], postIDs=postIDs)
 
 def getPosts(before):
-    print('getting posts')
     posts = []
     postRefs = {}
     screen_name = session[constants.PROFILE_KEY]['name']
-    print(screen_name)
     email = session[constants.PROFILE_KEY]['email']
     following = session[constants.PROFILE_KEY]['following']
     filtered_following = session[constants.PROFILE_KEY]['filtered_following']
@@ -856,7 +854,6 @@ def getPosts(before):
     displayNames = {}
     #filtered users
     query = ''
-    print('got here')
     for user in filtered_following:
         filtered_games = filtered_following[user]
         if len(filtered_games) > 0:

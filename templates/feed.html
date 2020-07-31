@@ -6,6 +6,7 @@
 		username = "{{screen_name}}";
 		earliestSeen = "{{earliest}}";
 		postIDs = new Set({{postIDs | tojson}});
+		following = new Set({{following|tojson}});
 	</script>
 <div class="container">
 	<div class="row">
@@ -20,7 +21,7 @@
 				{% if post.display_name == post.username%}
 				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				{% else %}
-				{{post.display_name}} <a href="{{url_for('viewProfile',username=post.username)}}">@{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				{{post.display_name}} @<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
 				{% endif %}
 				<div class="coins">{{post.coins}}</i></div>
 			</div>
