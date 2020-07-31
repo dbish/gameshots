@@ -262,9 +262,10 @@ def createComment(user, text, postID):
             cur = rds_con.cursor()
             cur.execute(query)
         postOwner = cur.fetchone()[0]
-        print(postOwner)
 
-        addNotification(postOwner, url_for('viewPost', postid=postID), f"{user} commented on your post")
+        
+        if user != postOwner:
+            addNotification(postOwner, url_for('viewPost', postid=postID), f"{user} commented on your post")
     except e:
         print(e)
 
