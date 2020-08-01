@@ -15,6 +15,7 @@ from jose import jwt
 from flask_cors import cross_origin
 from six.moves.urllib.request import urlopen
 import json
+import requests
 
 AUTH0_CALLBACK_URL = constants.AUTH0_CALLBACK_URL
 AUTH0_CLIENT_ID = constants.AUTH0_CLIENT_ID
@@ -245,7 +246,13 @@ def api_create_post():
 @app.route('/autocompleteGames')
 @requires_auth
 def autoCompleteGames():
-    games = ['Sea of Thieves', 'Sea of Made Up Game']
+    url = constants.IGDB_URL
+    user_key = constants.IGDB_KEY
+    prefix = request.args.get('term')
+    data = f'fields name; where name~"{prefix}"*; limit 50;'
+    result = requests.post(url, data=data, headers={'user-key':user_key})
+    all_games = result.json()
+    games = [game['name'] for game in all_games]
     return jsonify(games)
     
 
