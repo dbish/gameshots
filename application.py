@@ -241,6 +241,14 @@ def api_create_post():
     except:
         return jsonify('missing data')
 
+
+@app.route('/autocompleteGames')
+@requires_auth
+def autoCompleteGames():
+    games = ['Sea of Thieves', 'Sea of Made Up Game']
+    return jsonify(games)
+    
+
 def createComment(user, text, postID):
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     commentID = str(uuid.uuid4())
