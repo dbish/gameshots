@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
 <title>gameshots</title>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" crossorigin="anonymous">
@@ -8,17 +8,24 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 <link href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.min.css" rel="stylesheet"></link>
 <script src="http://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-	<script type="text/javascript">
-		var username;
-	</script>
-	<script src="{{url_for('static', filename='notifications.js')}}"></script>
+<script type="text/javascript">
+	var username;
+</script>
+<script src="{{url_for('static', filename='notifications.js')}}"></script>
+{% if post is defined %}
+<meta property="og:title" content="{{post.username}} in {{post.game}}"/>
+<meta property="og:type" content="website"/>
+<meta property="og:description" content="{{post.editorial}}"/>
+<meta property="og:image" content="{{post.image}}"/>
+<meta property="og:url" content="http://www.gameshots.gg{{url_for('viewPost', postid=post.id)}}"/>
+{% endif %}
 </head>
 <body>
         <nav class="navbar navbar-dark bg-dark fixed-top navbar-expand-lg">
 		<a class="navbar-brand" href="{{url_for('home')}}">
 			<img class="logo" src="{{url_for('static', filename='gg.svg')}}" style="height:100px"></img>
 		</a>
-		{% if screen_name is defined %}
+		{% if ((screen_name is defined) and (screen_name is not none)) %}
 		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
 		</button>

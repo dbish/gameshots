@@ -521,10 +521,13 @@ def viewProfile(username):
     return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games, filtered=filtered_games, display_name=getDisplayName(username, {})) 
 
 @app.route('/post/<postid>')
-@requires_auth
 def viewPost(postid):
-    username = session[constants.PROFILE_KEY]['name']
-    voted = session[constants.PROFILE_KEY]['voted']
+    username = None
+    voted = []
+
+    if constants.PROFILE_KEY in session:
+        username = session[constants.PROFILE_KEY]['name']
+        voted = session[constants.PROFILE_KEY]['voted']
 
     query = f"SELECT user, picture, game, info, createdtime, completed, coins FROM POSTS where postid='{postid}'"
 

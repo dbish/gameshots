@@ -23,6 +23,7 @@
 
 			<img src="{{post.image}}" class="card-img-top">
 			<div class="card-body">
+				{% if screen_name is not none %}
 			        {% if post.voted %}
                                 <button class="btn upvoteButton" onclick="upvotePost('{{post.id}}')" style="display:none">+1</button>
                                 <button class="btn downvoteButton" onclick="downvotePost('{{post.id}}')">-1</button>
@@ -30,6 +31,7 @@
                                 <button class="btn upvoteButton" onclick="upvotePost('{{post.id}}')">+1</button>
                                 <button class="btn downvoteButton" onclick="downvotePost('{{post.id}}')" style="display:none">-1</button>
 
+                                {% endif %}
                                 {% endif %}
 
 				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
@@ -56,11 +58,13 @@
 
 			</div>
 			<div class="card-body">
+				{% if screen_name is not none %}
 			    <input class="commentbox" class="form-control" placeholder="enter comment..."
                                                                                onkeydown= "if (event.keyCode==13)
                                                                                postComment('{{post.id}}', '{{screen_name}}')"
                                 >
 				<button class="btn" onclick="postComment('{{post.id}}', '{{screen_name}}')">post</button>
+				{% endif %}
 			</div>
 		</div>
 	{% if post.username == screen_name %}
