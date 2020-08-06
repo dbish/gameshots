@@ -16,6 +16,7 @@ from flask_cors import cross_origin
 from six.moves.urllib.request import urlopen
 import json
 import requests
+import string
 
 AUTH0_CALLBACK_URL = constants.AUTH0_CALLBACK_URL
 AUTH0_CLIENT_ID = constants.AUTH0_CLIENT_ID
@@ -494,6 +495,36 @@ def getUserThumbnails(username):
 
     return posts
 
+@app.route('/game/<game>', methods=['GET'])
+@requires_auth
+def viewGame(game):
+    #games_following = session[constants.PROFILE_KEY]['games_following']
+    url = 'https://api-v3.igdb.com/games/'
+    headers = {'user-key':'16fc75eea1a58e7100f4130bddca7967'}
+    data = f'fields *; where slug="{game}";'
+    result = requests.post(url, data=data, headers=headers)
+    game_id = result.json()[0]['id']
+    companies = result.json()[0]['involved_companies']
+    summary = result.json()[0]['summary']
+    name = result.json()[0]['name']
+
+    cover_url = 'https://api-v3.igdb.com/covers'
+    data = f'fields image_id; where game={game_id};'
+    result = requests.post(cover_url, data=data, headers=headers)
+    image_id = result.json()[0]['image_id']
+    image_url = f'http://images.igdb.com/igdb/image/upload/t_cover_big/{image_id}.jpg'
+
+    company_url = 'https://api-v3.igdb.com/companies'
+    companies = ','.join(map(str,companies))
+    data = f'fields *; where developed=({game_id});';
+    result = requests.post(company_url, data=data, headers=headers)
+    companies = [x['name'] for x in result.json()]
+    companies = ','.join(companies)
+
+
+
+    return render_template('game.html', image_url=image_url, companies=companies, summary=summary, name=name)
+
 @app.route('/gamer/<username>', methods=['GET', 'POST'])
 @requires_auth
 def viewProfile(username):
@@ -556,9 +587,11 @@ def viewPost(postid):
     finally:
         rds_con.close()
 
-    return render_template('post.html', post=post, screen_name=username)
+    return render_template('post.html', post=post, screen_name=username, slug=createSlug(info[2]))
 
-
+def createSlug(name):
+    name = name.translate(str.maketrans('', '', string.punctuation)).lower().replace(" ", "-")
+    return name
 
 @app.route('/login')
 def login():
