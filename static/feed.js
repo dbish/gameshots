@@ -43,7 +43,8 @@ function addNewPost(info){
 	if (pDisplay_name != pUsername){
 		profileHTML += pDisplay_name+' @';
 	}
-	profileHTML += '<a href="/gamer/'+info[0]+'">'+info[0]+'</a><i class="fa fa-gamepad"></i><i>'+info[1]+'</i>';
+	profileHTML += '<a href="/gamer/'+info[0]+'">'+info[0]+'</a> <i class="fa fa-gamepad"></i> '
+	profileHTML += '<a href="/game/'+info[10]+'"><i>'+info[1]+'</i></a>';
 	header.append(profileHTML);
 	header.append('<div class="coins">'+info[4]+'</div>');
 

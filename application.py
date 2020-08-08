@@ -32,13 +32,17 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameNormalized', 'display_name'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameSlug', 'display_name'])
 Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color', 'display_name'])
 Notification = collections.namedtuple("Notification", ['id', 'username', 'link', 'info', 'timestamp', 'read'])
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALGORITHMS=['RS256']
+
+def createSlug(name):
+    name = name.translate(str.maketrans('', '', string.punctuation)).lower().replace(" ", "-")
+    return name
 
 
 # Format error response and append status code
@@ -573,7 +577,7 @@ def viewPost(postid):
         user = info[0]
         displayNames = {}
         display_name = getDisplayName(user, displayNames)
-        post = Post(info[0], info[2], info[1], info[3], info[6], info[4].strftime("%Y-%m-%d %H:%M:%S"), postid, [], info[5], (postid in voted), normalize(info[2]), display_name)
+        post = Post(info[0], info[2], info[1], info[3], info[6], info[4].strftime("%Y-%m-%d %H:%M:%S"), postid, [],  info[5], (postid in voted), createSlug(info[2]), display_name)
 
         query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
         with rds_con:
@@ -587,7 +591,7 @@ def viewPost(postid):
     finally:
         rds_con.close()
 
-    return render_template('post.html', post=post, screen_name=username, slug=createSlug(info[2]))
+    return render_template('post.html', post=post, screen_name=username)
 
 def createSlug(name):
     name = name.translate(str.maketrans('', '', string.punctuation)).lower().replace(" ", "-")
@@ -735,10 +739,6 @@ def deletePost(postID):
     return redirect(url_for('home'))
 
 
-def normalize(game):
-    game = game.replace(":", "_")
-    return game.replace(" ", "_")
-
 def updateFilter(username, following, games, curFilter):
     dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
     table = dynamodb.Table('gg_users');
@@ -879,7 +879,9 @@ def getColor(name):
 @app.route('/scrollFeed', methods=['GET'])
 def scrollFeed():
     before = request.args.get('before')
+    print(before)
     posts = getPosts(before)
+    print(jsonify(posts))
     return jsonify(posts)
     
 def feed():
@@ -889,7 +891,7 @@ def feed():
     print(posts[-1])
     postIDs = [post.id for post in posts]
     print(postIDs)
-    return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1][5], postIDs=postIDs)
+    return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1].time, postIDs=postIDs)
 
 def getPosts(before):
     posts = []
@@ -922,7 +924,6 @@ def getPosts(before):
     if before:
         query += f" AND createdtime <= '{before}'"
     query += " ORDER BY createdtime DESC LIMIT 10"
-    print(query)
 
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     try:
@@ -935,7 +936,7 @@ def getPosts(before):
             game = row[3]
             user = row[1]
             display_name = getDisplayName(user, displayNames)
-            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), normalize(game), display_name)
+            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name)
             postRefs[postID] = newPost 
             posts.append(newPost)
 

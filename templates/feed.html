@@ -20,10 +20,11 @@
 	{% endif %}
 			<div class="card-header">
 				{% if post.display_name == post.username%}
-				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> 
 				{% else %}
-				{{post.display_name}} @<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> <i>{{post.game}}</i> 
+				{{post.display_name}} @<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> 
 				{% endif %}
+				<a href="{{url_for('viewGame',game=post.gameSlug)}}"><i>{{post.game}}</i></a>
 				<div class="coins">{{post.coins}}</i></div>
 			</div>
 			<a href="{{url_for('viewPost', postid=post.id)}}"><img src="{{post.image}}" class="card-img-top"></a>
