@@ -531,9 +531,11 @@ def viewGame(game):
     companies = [x['name'] for x in result.json()]
     companies = ','.join(companies)
 
+    posts = getGamePosts(None, game)
 
 
-    return render_template('game.html', image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=createSlug(name),
+
+    return render_template('game.html', posts=posts, image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=createSlug(name),
             games_following=games_following)
 
 @app.route('/gamer/<username>', methods=['GET', 'POST'])
@@ -956,10 +958,64 @@ def feed():
     screen_name = session[constants.PROFILE_KEY]['name']
     following = session[constants.PROFILE_KEY]['following']
     posts = getPosts(None)
-    print(posts[-1])
     postIDs = [post.id for post in posts]
-    print(postIDs)
     return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1].time, postIDs=postIDs)
+
+def getGamePosts(before, game):
+    posts = []
+    displayNames = {}
+    postRefs = {}
+    screen_name = session[constants.PROFILE_KEY]['name']
+    following = session[constants.PROFILE_KEY]['following']
+    voted = session[constants.PROFILE_KEY]['voted']
+    if game is None:
+        games = session[constants.PROFILE_KEY]['games_following']
+    else:
+        games = [game]
+    placeholder = '%s'
+    placeholders = ', '.join(placeholder for game in games)
+
+    query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where slug in ({placeholders}) ORDER BY createdtime DESC LIMIT 10"
+
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query, tuple(games))
+
+        for row in cur.fetchall():
+            postID = row[0]
+            game = row[3]
+            user = row[1]
+            display_name = getDisplayName(user, displayNames)
+            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name)
+            postRefs[postID] = newPost 
+            posts.append(newPost)
+
+
+        if len(posts) > 0:
+            placeholder = '%s'
+            placeholders = ', '.join(placeholder for postID in postRefs.keys())
+            query = f"SELECT postID, commentID, user, text, createdtime FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
+            with rds_con:
+                cur = rds_con.cursor()
+                cur.execute(query, tuple(postRefs.keys()))
+
+            for row in cur.fetchall():
+                postID = row[0]
+                user = row[2]
+                display_name = getDisplayName(user, displayNames)
+                comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]), display_name)
+                postRefs[postID].comments.append(comment)
+    finally:
+        rds_con.close()
+
+    return posts
+
+
+
+    
+
 
 def getPosts(before):
     posts = []
