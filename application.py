@@ -367,9 +367,10 @@ def createPost(user, picture, game, info, completed):
         filename = filename[-100:]
     filename = prefix + filename
     bucket.upload_fileobj(picture, filename, ExtraArgs={'ACL':'public-read'})
+    slug = createSlug(game)
     s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{filename}'
     comp_val = 0
-    query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed) VALUES (%s,%s,%s,%s,%s,%s)"
+    query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed, slug) VALUES (%s,%s,%s,%s,%s,%s,%s)"
     if completed:
         comp_val = 1
 
@@ -378,7 +379,7 @@ def createPost(user, picture, game, info, completed):
     try:
         with rds_con:
             cur = rds_con.cursor()
-            vals = (postID, user, s3_link, game, info, comp_val)
+            vals = (postID, user, s3_link, game, info, comp_val, slug)
             cur.execute(query, vals) 
         rds_con.commit()
     finally:
