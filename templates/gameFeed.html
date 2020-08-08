@@ -13,6 +13,9 @@
 <div class="container">
 	<div class="row">
 	<div class="col-9" id="postsDiv">
+	{% if posts|length < 1 %}
+	<p class="extraInfo">a little lonely here... find some more games to follow by searching on the right!</p>
+	{% endif %}
 	{% for post in posts %}
 	{% if post.completed == 1 %}
 	<div class="card border complete border-warning bg-dark {{post.gameNormalized}}" id={{post.id}}>

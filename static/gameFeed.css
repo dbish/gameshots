@@ -2,6 +2,10 @@ h3 {
 	color:white;
 }
 
+.extraInfo {
+	color: white;
+}
+
 #games_list {
 	list-style:none;
 	padding-left: 0;

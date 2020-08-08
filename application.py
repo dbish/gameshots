@@ -985,9 +985,14 @@ def gameFeed():
     screen_name = session[constants.PROFILE_KEY]['name']
     games_following = session[constants.PROFILE_KEY]['games_following']
     following = session[constants.PROFILE_KEY]['following']
-    posts = getGamePosts(None, None)
+    posts = []
+    if len(games_following) > 0:
+        posts = getGamePosts(None, None)
+        earliest = posts[-1].time
+    else:
+        earliest = 0
     postIDs = [post.id for post in posts]
-    return render_template('gameFeed.html', posts=posts, screen_name=screen_name, games_following=games_following, following=following, earliest=posts[-1].time, postIDs=postIDs, activePage='gamesNav')
+    return render_template('gameFeed.html', posts=posts, screen_name=screen_name, games_following=games_following, following=following, earliest=earliest, postIDs=postIDs, activePage='gamesNav')
 
 
 
