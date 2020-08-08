@@ -117,6 +117,7 @@ def getUserInfo(username, email):
     dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
     following = []
     followers = []
+    games_following = []
     voted = []
     display_name = ''
     filtered_following = []
@@ -138,6 +139,8 @@ def getUserInfo(username, email):
             voted = response['Item']['voted']
         if 'filtered_following' in response['Item']:
             filtered_following = response['Item']['filtered_following']
+        if 'games_following' in response['Item']:
+            games_following = response['Item']['games_following']
     else:
         response = table.put_item(
                 Item={
@@ -145,12 +148,13 @@ def getUserInfo(username, email):
                     'email':email,
                     'following':[],
                     'filtered_following':{},
+                    'games_following':{},
                     'followers':[],
                     'voted':[]
                     }
                 )
         flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
-    return following, followers, voted, filtered_following, display_name
+    return following, followers, voted, filtered_following, display_name, games_following
 
 def requires_auth(f):
     @wraps(f)
@@ -439,7 +443,7 @@ def callback_handling():
     resp = auth0.get('userinfo')
     userinfo = resp.json()
 
-    following, followers, voted, filtered_following, display_name = getUserInfo(userinfo['name'], userinfo['email'])
+    following, followers, voted, filtered_following, display_name, games_following = getUserInfo(userinfo['name'], userinfo['email'])
 
     session[constants.JWT_PAYLOAD] = userinfo
     session[constants.PROFILE_KEY] = {
@@ -450,7 +454,8 @@ def callback_handling():
         'followers':followers,
         'filtered_following':filtered_following,
         'voted':voted,
-        'display_name':display_name
+        'display_name':display_name,
+        'games_following':games_following
     }
     return redirect('/')
 
@@ -502,6 +507,7 @@ def getUserThumbnails(username):
 @app.route('/game/<game>', methods=['GET'])
 @requires_auth
 def viewGame(game):
+    games_following = session[constants.PROFILE_KEY]['games_following']
     #games_following = session[constants.PROFILE_KEY]['games_following']
     url = 'https://api-v3.igdb.com/games/'
     headers = {'user-key':'16fc75eea1a58e7100f4130bddca7967'}
@@ -527,7 +533,8 @@ def viewGame(game):
 
 
 
-    return render_template('game.html', image_url=image_url, companies=companies, summary=summary, name=name)
+    return render_template('game.html', image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=createSlug(name),
+            games_following=games_following)
 
 @app.route('/gamer/<username>', methods=['GET', 'POST'])
 @requires_auth
@@ -855,6 +862,67 @@ def unfollowUser():
             #remove from followers
             return jsonify('success')
 
+@requires_auth
+@app.route('/followGame', methods=['POST'])
+def followGame():
+    username = session[constants.PROFILE_KEY]['name']
+    follow = request.form['follow']
+    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('gg_users');
+    response = table.update_item(
+            Key={'username':username},
+            UpdateExpression="SET games_following = list_append(games_following, :i)",
+            ExpressionAttributeValues={
+                ':i':[follow],
+                },
+            ReturnValues="UPDATED_NEW"
+            )
+
+    session[constants.PROFILE_KEY]['games_following'] = response['Attributes']['games_following']
+    #add to followers
+    session.modified = True
+    print('followed')
+    return jsonify('success')
+
+
+@requires_auth
+@app.route('/unfollowGame', methods=['POST'])
+def unfollowGame():
+    username = session[constants.PROFILE_KEY]['name']
+    unfollow = request.form['unfollow']
+    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('gg_users');
+    response = table.get_item(
+            Key={
+                'username':username
+                }
+            )
+    if 'Item' in response:
+        if 'games_following' in response['Item']:
+            games_following = response['Item']['games_following']
+            idx = games_following.index(unfollow)
+
+            response = table.update_item(
+                    Key={'username':username},
+                    UpdateExpression=f"REMOVE games_following[{idx}]",
+                    ReturnValues="UPDATED_NEW"
+                    )
+
+            response = table.get_item(
+                    Key={
+                        'username':username
+                        }
+                    )
+
+            if 'Item' in response:
+                if 'games_following' in response['Item']:
+                    games_following = response['Item']['games_following']
+
+            session[constants.PROFILE_KEY]['games_following'] = games_following 
+            session.modified = True
+
+            #remove from followers
+            return jsonify('success')
 
 
 @app.route('/favicon.ico')
