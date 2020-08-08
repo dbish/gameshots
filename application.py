@@ -508,6 +508,7 @@ def getUserThumbnails(username):
 @requires_auth
 def viewGame(game):
     games_following = session[constants.PROFILE_KEY]['games_following']
+    username = session[constants.PROFILE_KEY]['name']
     #games_following = session[constants.PROFILE_KEY]['games_following']
     url = 'https://api-v3.igdb.com/games/'
     headers = {'user-key':'16fc75eea1a58e7100f4130bddca7967'}
@@ -536,7 +537,7 @@ def viewGame(game):
 
 
     return render_template('game.html', posts=posts, image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=createSlug(name),
-            games_following=games_following)
+            games_following=games_following, screen_name=username)
 
 @app.route('/gamer/<username>', methods=['GET', 'POST'])
 @requires_auth
@@ -949,9 +950,7 @@ def getColor(name):
 @app.route('/scrollFeed', methods=['GET'])
 def scrollFeed():
     before = request.args.get('before')
-    print(before)
     posts = getPosts(before)
-    print(jsonify(posts))
     return jsonify(posts)
     
 def feed():
@@ -959,7 +958,19 @@ def feed():
     following = session[constants.PROFILE_KEY]['following']
     posts = getPosts(None)
     postIDs = [post.id for post in posts]
-    return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1].time, postIDs=postIDs)
+    return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1].time, postIDs=postIDs, activePage='friendsNav')
+
+@requires_auth
+@app.route('/games')
+def gameFeed():
+    screen_name = session[constants.PROFILE_KEY]['name']
+    games_following = session[constants.PROFILE_KEY]['games_following']
+    following = session[constants.PROFILE_KEY]['following']
+    posts = getGamePosts(None, None)
+    postIDs = [post.id for post in posts]
+    return render_template('gameFeed.html', posts=posts, screen_name=screen_name, games_following=games_following, following=following, earliest=posts[-1].time, postIDs=postIDs, activePage='gamesNav')
+
+
 
 def getGamePosts(before, game):
     posts = []
