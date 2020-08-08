@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{url_for('static', filename='gameFeed.css')}}">
+<script src="{{url_for('static', filename='post.js')}}"></script>
+<script src="{{url_for('static', filename='gameFeed.js')}}"></script>
+	<script type="text/javascript">
+		username = "{{screen_name}}";
+		earliestSeen = "{{earliest}}";
+		postIDs = new Set({{postIDs | tojson}});
+		games_following = new Set({{games_following|tojson}});
+		following = new Set({{following|tojson}});
+	</script>
+<div class="container">
+	<div class="row">
+	<div class="col-9" id="postsDiv">
+	{% for post in posts %}
+	{% if post.completed == 1 %}
+	<div class="card border complete border-warning bg-dark {{post.gameNormalized}}" id={{post.id}}>
+	{% else %}
+	<div class="card {{post.gameNormalized}} bg-dark" id={{post.id}}>
+	{% endif %}
+			<div class="card-header">
+				{% if post.display_name == post.username%}
+				<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> 
+				{% else %}
+				{{post.display_name}} @<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> 
+				{% endif %}
+				<a href="{{url_for('viewGame',game=post.gameSlug)}}"><i>{{post.game}}</i></a>
+				<div class="coins">{{post.coins}}</i></div>
+			</div>
+			<a href="{{url_for('viewPost', postid=post.id)}}"><img src="{{post.image}}" class="card-img-top"></a>
+			<div class="card-body">
+				{% if post.voted %}
+				<button class="btn upvoteButton" onclick="upvotePost('{{post.id}}')" style="display:none">+1</button> 
+				<button class="btn downvoteButton" onclick="downvotePost('{{post.id}}')">-1</button> 
+				{% else %}
+				<button class="btn upvoteButton" onclick="upvotePost('{{post.id}}')">+1</button> 
+				<button class="btn downvoteButton" onclick="downvotePost('{{post.id}}')" style="display:none">-1</button> 
+
+				{% endif %}
+				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
+				<ul class="commentsList">
+					<li class="editorial">{{post.time}}: {{post.editorial}}</li>
+					{% for comment in post.comments %}
+					{% if comment.username == screen_name %}
+					<li class='mycomment'>
+					{% else %}
+					<li>
+					{% endif %}
+					{% if comment.username == screen_name %}
+					<button type="button" class="btn btn-sm btn-danger" onclick="deleteComment('{{comment.id}}', this)">-</button>
+					{% endif %}
+					{% if comment.username == post.username %}
+					<i class="fa fa-crown" style='color:yellow'></i>
+					{% elif comment.username in following %}
+					<i class="fa fa-gem"></i>
+					{% endif %}
+					<a href="/gamer/{{comment.username}}" style="color:{{comment.color}}">{{comment.display_name}}</a>: {{comment.text}}
+					</li>
+					{% endfor %}
+				</ul>
+			</div>
+			<div class="card-body">
+				<input class="commentbox" class="form-control" placeholder="enter comment..."
+									       onkeydown= "if (event.keyCode==13) 
+									       postComment('{{post.id}}', '{{screen_name}}')"					       
+				>
+				<button class="btn" onclick="postComment('{{post.id}}', '{{screen_name}}')">post</button>
+			</div>
+	</div>
+	{% endfor %}
+	</div>
+	<div class="col" id="gamesDiv">
+		<h3>search</h3>
+		<form action='{{url_for('findGame')}}' method="POST">
+		<div class="input-group mb-3">
+			<input type="text" class="form-control" placeholder="game" aria-label="game" aria-describedby="basic-addon2" name="game"game id="game">
+			<div class="input-group-append">
+				<button class="btn btn-outline-secondary" type="submit">go</button>
+			</div>
+		</div>
+		</form>
+		<h3>following</h3>
+		<ul id="games_list">
+			{% for game in games_following %}
+			<li>
+				<a href="{{url_for('viewGame', game=game)}}" class='btn btn-outline-light'>{{game}}</a>
+			</li>
+			{% endfor %}
+		</ul>
+	</div>
+	</div>
+</div>
+{% endblock %}

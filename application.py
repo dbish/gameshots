@@ -504,6 +504,18 @@ def getUserThumbnails(username):
 
     return posts
 
+@app.route('/findGame', methods=['POST'])
+@requires_auth
+def findGame():
+    result = request.form
+    try:
+        game = request.form['game'] 
+        slug = createSlug(game)
+        return redirect(url_for('viewGame', game=slug))
+    except:
+        return None
+
+
 @app.route('/game/<game>', methods=['GET'])
 @requires_auth
 def viewGame(game):
@@ -953,6 +965,13 @@ def scrollFeed():
     posts = getPosts(before)
     return jsonify(posts)
     
+
+@app.route('/scrollGamesFeed', methods=['GET'])
+def scrollGamesFeed():
+    before = request.args.get('before')
+    posts = getGamePosts(before, None)
+    return jsonify(posts)
+
 def feed():
     screen_name = session[constants.PROFILE_KEY]['name']
     following = session[constants.PROFILE_KEY]['following']
@@ -986,7 +1005,10 @@ def getGamePosts(before, game):
     placeholder = '%s'
     placeholders = ', '.join(placeholder for game in games)
 
-    query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where slug in ({placeholders}) ORDER BY createdtime DESC LIMIT 10"
+    query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where slug in ({placeholders})"
+    if before:
+        query += f" AND createdtime <= '{before}'"
+    query += " ORDER BY createdtime DESC LIMIT 10"
 
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     try:
