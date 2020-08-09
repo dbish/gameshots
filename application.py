@@ -25,7 +25,9 @@ AUTH0_DOMAIN = constants.AUTH0_DOMAIN
 AUTH0_BASE_URL = 'https://' + AUTH0_DOMAIN
 AUTH0_AUDIENCE = constants.AUTH0_AUDIENCE
 
-
+PIC_FILE_TYPES = set(['png', 'jpg', 'jpeg', 'gif'])
+MOV_FILE_TYPES = set(['mp4'])
+MAX_FILE_SIZE = 20*1024*1024 #20MB max
 
 application = Flask(__name__)
 SECRET_KEY = os.urandom(32)
@@ -38,6 +40,7 @@ Notification = collections.namedtuple("Notification", ['id', 'username', 'link',
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_PATH'] = MAX_FILE_SIZE
 ALGORITHMS=['RS256']
 
 def createSlug(name):
@@ -419,6 +422,12 @@ def settings():
     
     return render_template('settings.html', username=username, display_name=display_name)
     
+def allowed_file(filename):
+    allowed_extensions = PIC_FILE_TYPES|MOV_FILE_TYPES
+
+    return '.' in filename and \
+            filename.rsplit('.', 1)[1].lower() in allowed_extensions 
+
 @app.route('/create', methods=['POST', 'GET'])
 @requires_auth
 def create():
@@ -428,14 +437,20 @@ def create():
         result = request.form
         if 'file' in request.files:
             file = request.files['file']
-            game = request.form['game']
-            comment = request.form['comment']
-            filename = file.filename
-            if 'completed' in request.form:
-                completed = True
-            createPost(username, file, game, comment, completed)
-            #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(url_for('home'))
+            if file.filename == '':
+                flash('no selected file')
+                return redirect(url_for('create'))
+            if file and allowed_file(file.filename):
+                game = request.form['game']
+                comment = request.form['comment']
+                filename = file.filename
+                if 'completed' in request.form:
+                    completed = True
+                createPost(username, file, game, comment, completed)
+                #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                return redirect(url_for('home'))
+        else:
+            return redirect(url_for('create'))
     return render_template('create.html')
 
 @app.route('/callback')

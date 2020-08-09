@@ -31,7 +31,14 @@
 				<a href="{{url_for('viewGame',game=post.gameSlug)}}"><i>{{post.game}}</i></a>
 				<div class="coins">{{post.coins}}</i></div>
 			</div>
-			<a href="{{url_for('viewPost', postid=post.id)}}"><img src="{{post.image}}" class="card-img-top"></a>
+		       {% if ('.mp4' in post.image) %}
+                        <video controls autoplay>
+                                <source src="{{post.image}}" type="video/mp4">
+                        </video>
+                        {% else %}
+                        <img src="{{post.image}}" class="card-img-top">
+                        {% endif %}
+
 			<div class="card-body">
 				{% if post.voted %}
 				<button class="btn upvoteButton" onclick="upvotePost('{{post.id}}')" style="display:none">+1</button> 

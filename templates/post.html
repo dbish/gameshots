@@ -23,7 +23,13 @@
                                 <div class="coins">{{post.coins}}</i></div>
                         </div>
 
+			{% if ('.mp4' in post.image) %}
+			<video controls autoplay>
+				<source src="{{post.image}}" type="video/mp4">
+			</video>
+			{% else %}
 			<img src="{{post.image}}" class="card-img-top">
+			{% endif %}
 			<div class="card-body">
 				{% if screen_name is not none %}
 			        {% if post.voted %}
