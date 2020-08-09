@@ -20,7 +20,7 @@
                         <GradientStop Offset="0.651" Color="Black"/>
                     </LinearGradientBrush>
                 </DockPanel.Background>
-                <controls:GGLogo Width="100" Margin="20" DockPanel.Dock="Left"/>
+                <controls:GGLogo Width="75" Margin="25" DockPanel.Dock="Left"/>
                 <Button DockPanel.Dock="Right" Width="200" Margin="20" Command="{Binding LogonCommand}">Logon control goes here</Button>
             </DockPanel>
             <Grid>

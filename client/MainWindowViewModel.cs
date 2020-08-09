@@ -45,6 +45,11 @@ namespace GGShot
             EscapeCommand = new DelegateCommand(DoEscape);
             PostImage = new DelegateCommand(DoPost);
             LogonCommand = new DelegateCommand(DoLogon);
+            RefreshItems();
+        }
+
+        private void RefreshItems()
+        {
             var capturesDir = Windows.Media.Capture.AppCaptureManager.GetCurrentSettings().AppCaptureDestinationFolder.Path;
             var files = Directory.GetFiles(capturesDir, "*.png");
             foreach (var file in files)
