@@ -2,12 +2,25 @@ function readURL(input) {
   if (input.files && input.files[0]) {
     var reader = new FileReader();
     
-    reader.onload = function(e) {
-      $('#imgPreview').attr('src', e.target.result);
+    var extension = input.files[0].name.split('.').pop().toLowerCase();
+    console.log(extension);
+    if (extension == 'mp4'){
+	    reader.onload = function(e){
+		    $('#videoPreview').attr('src', e.target.result);
+	    }
+	    reader.readAsDataURL(input.files[0]); // convert to base64 string
+	    
+	    $('#imgPreview').hide();
+	    $('#videoPreview').show();
+    }else{
+	    reader.onload = function(e) {
+	      $('#imgPreview').attr('src', e.target.result);
+	    }
+	    
+	    reader.readAsDataURL(input.files[0]); // convert to base64 string
+	    $('#videoPreview').hide();
+	    $('#imgPreview').show();
     }
-    
-    reader.readAsDataURL(input.files[0]); // convert to base64 string
-    $('#imgPreview').show();
   }
   else {
 	  $('#imgPreview').hide();
