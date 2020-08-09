@@ -64,7 +64,7 @@ namespace GGShot
         private void RefreshItems()
         {
             var capturesDir = Windows.Media.Capture.AppCaptureManager.GetCurrentSettings().AppCaptureDestinationFolder.Path;
-            var files = Directory.GetFiles(capturesDir, "*.png");
+            var files = Directory.GetFiles(capturesDir, "*.png").Concat(Directory.GetFiles(capturesDir, "*.mp4"));
             foreach (var file in files)
             {
                 BrowseItems.Add(new BrowseItemViewModel(file));
@@ -100,7 +100,7 @@ namespace GGShot
                 BusyText = "Posting screenshot...";
                 using (HttpClient client = new HttpClient())
                 {
-                    var imagePath = PostItem.ItemSource.LocalPath;
+                    var imagePath = PostItem.FileName;
                     var fileContent = new ByteArrayContent(File.ReadAllBytes(imagePath));
                     client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_loginResult.AccessToken);
                     var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
