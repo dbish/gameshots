@@ -4,6 +4,7 @@ using IdentityModel.OidcClient;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -46,6 +47,18 @@ namespace GGShot
             PostImage = new DelegateCommand(DoPost);
             LogonCommand = new DelegateCommand(DoLogon);
             RefreshItems();
+        }
+
+        internal void UserTextClicked()
+        {
+            if (IsLoggedIn)
+            {
+                Process.Start($"http://gameshots.gg/gamer/{UserName}");
+            }
+            else
+            {
+                DoLogon();
+            }
         }
 
         private void RefreshItems()
@@ -153,6 +166,8 @@ namespace GGShot
             extraParameters.Add("audience", "http://gameshots.gg/api");
             var client = new Auth0Client(clientOptions);
             m_loginResult = await client.LoginAsync(extraParameters);
+
+            OnPropertyChanged(nameof(LoggedOnUser));
         }
 
         private void OnTimer(object sender, EventArgs e)
@@ -266,6 +281,19 @@ namespace GGShot
         public DelegateCommand LogonCommand { get; }
 
         public bool IsLoggedIn => m_loginResult != null && !m_loginResult.IsError;
+        string UserName => m_loginResult.User.Identity.Name;
+
+        public string LoggedOnUser
+        {
+            get
+            {
+                if (IsLoggedIn)
+                {
+                    return UserName;
+                }
+                return "Log in";
+            }
+        }
 
         void DoSaveGif()
         {
