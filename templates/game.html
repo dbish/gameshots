@@ -46,13 +46,15 @@
 				{% endif %}
 				<div class="coins">{{post.coins}}</i></div>
 			</div>
+			<a href="{{url_for('viewPost', postid=post.id)}}">
                        {% if ('.mp4' in post.image) %}
-                        <video controls autoplay>
+                        <video controls autoplay class="card-img-top">
                                 <source src="{{post.image}}" type="video/mp4">
                         </video>
                         {% else %}
                         <img src="{{post.image}}" class="card-img-top">
                         {% endif %}
+			</a>
 
 			<div class="card-body">
 				{% if post.voted %}
