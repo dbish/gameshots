@@ -33,7 +33,7 @@
 			</div>
 			<a href="{{url_for('viewPost', postid=post.id)}}">
 		       {% if ('.mp4' in post.image) %}
-                        <video controls autoplay class="card-img-top">
+                        <video controls muted autoplay class="card-img-top">
                                 <source src="{{post.image}}" type="video/mp4">
                         </video>
                         {% else %}

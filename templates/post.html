@@ -24,7 +24,7 @@
                         </div>
 
 			{% if ('.mp4' in post.image) %}
-			<video controls autoplay>
+			<video controls muted autoplay>
 				<source src="{{post.image}}" type="video/mp4">
 			</video>
 			{% else %}
