@@ -100,14 +100,14 @@ namespace GGShot
                 BusyText = "Posting screenshot...";
                 using (HttpClient client = new HttpClient())
                 {
-                    var imagePath = PostItem.FileName;
+                    var imagePath = PostItem.LocalPath;
                     var fileContent = new ByteArrayContent(File.ReadAllBytes(imagePath));
                     client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_loginResult.AccessToken);
                     var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
                     //var response = await client.PostAsync("http://ec2-54-188-110-37.us-west-2.compute.amazonaws.com/api/createPost ", new MultipartFormDataContent()
                     {
                         {fileContent, "file", Path.GetFileName(imagePath)},
-                        {new StringContent("C# of thieves"), "game"},
+                        {new StringContent(PostItem.GameName), "game"},
                         {new StringContent(PostComment), "comment"},
                         {new StringContent(m_loginResult.User.Identity.Name), "username"}
                     });
