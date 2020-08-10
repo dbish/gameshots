@@ -16,13 +16,15 @@ var activePage = '{{activePage}}';
 <script src="{{url_for('static', filename='nav.js')}}"></script>
 {% if post is defined %}
 <meta property="og:title" content="{{post.username}} in {{post.game}}"/>
-<meta property="og:type" content="website"/>
 <meta property="og:description" content="{{post.editorial}}"/>
 {% if ('.mp4' in post.image) %}
+<meta property="og:type" content="video"/>
 <meta property="og:video" content="{{post.image}}"/>
 <meta property="og:video:url" content="{{post.image}}"/>
 <meta property="og:video:type" content="video/mp4"/>
+<meta property="og:image" content="{{gameThumbnail}}"/>
 {% else %}
+<meta property="og:type" content="website"/>
 <meta property="og:image" content="{{post.image}}"/>
 {% endif %}
 <meta property="og:url" content="http://www.gameshots.gg{{url_for('viewPost', postid=post.id)}}"/>

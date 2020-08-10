@@ -532,6 +532,22 @@ def findGame():
         return None
 
 
+def getCoverID(gameSlug):
+    url = 'https://api-v3.igdb.com/games/'
+    headers = {'user-key':'16fc75eea1a58e7100f4130bddca7967'}
+    data = f'fields id; where slug="{gameSlug}";'
+    result = requests.post(url, data=data, headers=headers)
+    game_id = result.json()[0]['id']
+    print(game_id)
+    cover_url = 'https://api-v3.igdb.com/covers'
+    data = f'fields image_id; where game={game_id};'
+    result = requests.post(cover_url, data=data, headers=headers)
+    image_id = result.json()[0]['image_id']
+    print(image_id)
+    return image_id
+
+
+
 @app.route('/game/<game>', methods=['GET'])
 @requires_auth
 def viewGame(game):
@@ -629,7 +645,13 @@ def viewPost(postid):
     finally:
         rds_con.close()
 
-    return render_template('post.html', post=post, screen_name=username)
+    #try:
+    #    image_id = getCoverID(post.gameSlug)
+    #    gameThumbLink = f'http://images.igdb.com/igdb/image/upload/t_thumb/{image_id}.jpg'
+    #except:
+    gameThumbLink = 'https://s3-us-west-2.amazonaws.com/gameshots.gg/defaultThumb.jpg'
+
+    return render_template('post.html', post=post, screen_name=username, gameThumbnail=gameThumbLink)
 
 def createSlug(name):
     name = name.translate(str.maketrans('', '', string.punctuation)).lower().replace(" ", "-")
