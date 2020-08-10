@@ -27,7 +27,7 @@ AUTH0_AUDIENCE = constants.AUTH0_AUDIENCE
 
 PIC_FILE_TYPES = set(['png', 'jpg', 'jpeg', 'gif'])
 MOV_FILE_TYPES = set(['mp4'])
-MAX_FILE_SIZE = 20*1024*1024 #20MB max
+MAX_FILE_SIZE = 10*1024*1024 #10MB max
 
 application = Flask(__name__)
 SECRET_KEY = os.urandom(32)
@@ -40,7 +40,7 @@ Notification = collections.namedtuple("Notification", ['id', 'username', 'link',
 
 UPLOAD_FOLDER = "/tmp"
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_PATH'] = MAX_FILE_SIZE
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 ALGORITHMS=['RS256']
 
 def createSlug(name):
