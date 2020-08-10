@@ -11,6 +11,20 @@
     <Window.InputBindings>
         <KeyBinding Key="Esc" Command="{Binding EscapeCommand}"/>
     </Window.InputBindings>
+    <Window.Resources>
+        <Style x:Key="{x:Type Hyperlink}" TargetType="{x:Type Hyperlink}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="true">
+                    <Setter Property="Foreground" Value="#0056B3" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="true">
+                    <Setter Property="Cursor" Value="Hand" />
+                </Trigger>
+            </Style.Triggers>
+            <Setter Property="Foreground" Value="#007BFF" />
+            <Setter Property="TextDecorations" Value="None" />
+        </Style>
+    </Window.Resources>
     <Grid>
         <DockPanel Background="Black">
             <DockPanel DockPanel.Dock="Top" LastChildFill="False">
@@ -20,8 +34,15 @@
                         <GradientStop Offset="0.651" Color="Black"/>
                     </LinearGradientBrush>
                 </DockPanel.Background>
-                <controls:GGLogo Width="100" Margin="20" DockPanel.Dock="Left"/>
-                <Button DockPanel.Dock="Right" Width="200" Margin="20" Command="{Binding LogonCommand}">Logon control goes here</Button>
+                <controls:GGLogo Width="75" Margin="25" DockPanel.Dock="Left"/>
+                <StackPanel DockPanel.Dock="Right" Width="200" Margin="20" VerticalAlignment="Center">
+                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="24">
+                        <Hyperlink Click="UserText_Click">
+                            <TextBlock Text="{Binding LoggedOnUser}"/>
+                        </Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+                
             </DockPanel>
             <Grid>
                 <ListView ScrollViewer.HorizontalScrollBarVisibility="Disabled"

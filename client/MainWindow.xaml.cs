@@ -37,5 +37,10 @@ namespace GGShot
         {
             m_viewModel.ItemDoubleClicked(sender);
         }
+
+        private void UserText_Click(object sender, RoutedEventArgs e)
+        {
+            m_viewModel.UserTextClicked();
+        }
     }
 }

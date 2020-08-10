@@ -4,6 +4,7 @@ using IdentityModel.OidcClient;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -45,8 +46,25 @@ namespace GGShot
             EscapeCommand = new DelegateCommand(DoEscape);
             PostImage = new DelegateCommand(DoPost);
             LogonCommand = new DelegateCommand(DoLogon);
+            RefreshItems();
+        }
+
+        internal void UserTextClicked()
+        {
+            if (IsLoggedIn)
+            {
+                Process.Start($"http://gameshots.gg/gamer/{UserName}");
+            }
+            else
+            {
+                DoLogon();
+            }
+        }
+
+        private void RefreshItems()
+        {
             var capturesDir = Windows.Media.Capture.AppCaptureManager.GetCurrentSettings().AppCaptureDestinationFolder.Path;
-            var files = Directory.GetFiles(capturesDir, "*.png");
+            var files = Directory.GetFiles(capturesDir, "*.png").Concat(Directory.GetFiles(capturesDir, "*.mp4"));
             foreach (var file in files)
             {
                 BrowseItems.Add(new BrowseItemViewModel(file));
@@ -82,7 +100,7 @@ namespace GGShot
                 BusyText = "Posting screenshot...";
                 using (HttpClient client = new HttpClient())
                 {
-                    var imagePath = PostItem.ItemSource.LocalPath;
+                    var imagePath = PostItem.FileName;
                     var fileContent = new ByteArrayContent(File.ReadAllBytes(imagePath));
                     client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_loginResult.AccessToken);
                     var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
@@ -148,6 +166,8 @@ namespace GGShot
             extraParameters.Add("audience", "http://gameshots.gg/api");
             var client = new Auth0Client(clientOptions);
             m_loginResult = await client.LoginAsync(extraParameters);
+
+            OnPropertyChanged(nameof(LoggedOnUser));
         }
 
         private void OnTimer(object sender, EventArgs e)
@@ -261,6 +281,19 @@ namespace GGShot
         public DelegateCommand LogonCommand { get; }
 
         public bool IsLoggedIn => m_loginResult != null && !m_loginResult.IsError;
+        string UserName => m_loginResult.User.Identity.Name;
+
+        public string LoggedOnUser
+        {
+            get
+            {
+                if (IsLoggedIn)
+                {
+                    return UserName;
+                }
+                return "Log in";
+            }
+        }
 
         void DoSaveGif()
         {
