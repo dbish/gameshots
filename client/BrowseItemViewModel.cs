@@ -1,10 +1,12 @@
 ﻿using Microsoft.WindowsAPICodePack.Shell;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -33,10 +35,27 @@ namespace GGShot
             }
 
             CreationTime = new FileInfo(m_localPath).CreationTimeUtc;
+
+            if (Path.GetExtension(localPath) == ".png" ||
+                Path.GetExtension(localPath) == ".jpg" ||
+                Path.GetExtension(localPath) == ".jpeg")
+            {
+                IsPicture = true;
+            }
+            else if (Path.GetExtension(localPath) == ".mp4")
+            {
+                IsVideo = true;
+            }
+            else
+            {
+                // TODO: Throw exception? Set some IsInvalid flag? Something to let us filter this entry out
+            }
         }
 
         public string LocalPath => m_localPath;
         public string GameName { get; private set; }
+        public bool IsVideo { get; private set; }
+        public bool IsPicture { get; private set; }
 
         public DateTime CreationTime { get; private set; }
 
@@ -57,6 +76,44 @@ namespace GGShot
         }
 
         internal byte[] GetEncodedContentBytes()
+        {
+            if (IsPicture)
+            {
+                return GetEncodedPictureBytes();
+            }
+            else if (IsVideo)
+            {
+                return GetEncodedVideoBytes();
+            }
+            else
+            {
+                throw new InvalidOperationException("Can only encode video or pictures");
+            }
+        }
+
+        private byte[] GetEncodedVideoBytes()
+        {
+            // Example: ffmpeg.exe -i "C:\Users\timmi\Videos\Captures\Sea of Thieves 2020-08-02 23-27-06.mp4" -vf scale=-1:720 -b:v 600k -maxrate 900k output6.mp4
+            string tempFile = Path.GetTempFileName() + ".mp4";
+            string args = $"-y -i \"{LocalPath}\" -vf scale=-1:720 -b:v 600k -maxrate 600k \"{tempFile}\"";
+            Process p = Process.Start(FFMpegPath, args);
+            // TODO: Don't block the UI while we re-encode
+            p.WaitForExit();
+            var ret = File.ReadAllBytes(tempFile);
+            File.Delete(tempFile);
+            return ret;
+        }
+
+        private string FFMpegPath
+        {
+            get
+            {
+                string dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                return Path.Combine(dir, "ffmpeg", "ffmpeg.exe");
+            }
+        }
+
+        private byte[] GetEncodedPictureBytes()
         {
             Image bmp = Image.FromFile(LocalPath);
             double width = bmp.Width;
