@@ -156,8 +156,25 @@ def getUserInfo(username, email):
                     'voted':[]
                     }
                 )
+        addUserToIndex(username, '')
         flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
     return following, followers, voted, filtered_following, display_name, games_following
+
+def addUserToIndex(username, displayname):
+    cloudsearch = aws_session.client('cloudsearchdomain', endpoint_url='http://doc-gg-test-6bwc55aehpsty6w5qfiv4pbsmy.us-west-2.cloudsearch.amazonaws.com', region_name='us-west-2')
+    doc = {}
+    doc['id'] = username 
+    doc['type'] = 'add'
+    doc['fields'] = {}
+    doc['fields']['username'] = username
+    doc['fields']['display_name'] = displayname
+    cloudsearch.upload_documents(documents = json.dumps([doc]), contentType="application/json")
+
+def updateSearchIndex(username, displayname):
+    cloudsearch = aws_session.client('cloudsearchdomain', endpoint_url='http://doc-gg-test-6bwc55aehpsty6w5qfiv4pbsmy.us-west-2.cloudsearch.amazonaws.com', region_name='us-west-2')
+    doc = {'id':username, 'type':'delete'}
+    cloudsearch.upload_documents(documents = json.dumps([doc]), contentType="application/json")
+    addUserToIndex(username, displayname)
 
 def requires_auth(f):
     @wraps(f)
@@ -406,6 +423,7 @@ def settings():
                     ':x':display_name,
                     }
                 )
+        updateSearchIndex(username, display_name)
         return redirect(url_for('home'))
 
     response = table.get_item(
@@ -532,18 +550,42 @@ def findGame():
         return None
 
 
+@app.route('/searchResults', methods=['GET'])
+@requires_auth
+def searchResults():
+    username = session[constants.PROFILE_KEY]['name']
+    query = request.args.get('q')
+    hits = session['hits']
+    return render_template('searchResults.html', search=query, users=hits, screen_name=username)
+
+@app.route('/findFriends', methods=['POST'])
+@requires_auth
+def findFriends():
+    result = request.form
+    try:
+        name = request.form['username'] 
+        cloudsearch = aws_session.client('cloudsearchdomain', endpoint_url='http://doc-gg-test-6bwc55aehpsty6w5qfiv4pbsmy.us-west-2.cloudsearch.amazonaws.com', region_name='us-west-2')
+        response = cloudsearch.search(query=name+'*')
+        hits = response['hits']['hit']
+        if len(hits) == 1:
+            username = hits[0]['id']
+            return redirect(url_for('viewProfile', username=username))
+        else:
+            session['hits'] = hits
+            return redirect(url_for('searchResults', q=name))
+    except:
+        return None 
+
 def getCoverID(gameSlug):
     url = 'https://api-v3.igdb.com/games/'
     headers = {'user-key':'16fc75eea1a58e7100f4130bddca7967'}
     data = f'fields id; where slug="{gameSlug}";'
     result = requests.post(url, data=data, headers=headers)
     game_id = result.json()[0]['id']
-    print(game_id)
     cover_url = 'https://api-v3.igdb.com/covers'
     data = f'fields image_id; where game={game_id};'
     result = requests.post(cover_url, data=data, headers=headers)
     image_id = result.json()[0]['image_id']
-    print(image_id)
     return image_id
 
 
@@ -941,7 +983,6 @@ def followGame():
     session[constants.PROFILE_KEY]['games_following'] = response['Attributes']['games_following']
     #add to followers
     session.modified = True
-    print('followed')
     return jsonify('success')
 
 

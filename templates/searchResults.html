@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{url_for('static', filename='searchResults.css')}}">
+<div class="container-fluid">
+	<h3>Results</h3>
+	{% if users|length > 0 %}
+	<ul class="resultsList">
+	    {% for user in users %}
+	    <li><a href="{{url_for('viewProfile',username=user['fields']['username'][0])}}">
+			    {% if 'display_name' in user['fields'] %}
+			    {{user['fields']['display_name'][0]}}
+			    {% endif %}
+			    @{{user['fields']['username'][0]}}
+		    </a></li>
+	    {% endfor %}
+
+	</ul>
+	{% else %}
+	<p>No results found on this path. Try a different route in the dungeon.</p>
+	<iframe src="https://giphy.com/embed/3o7btPCcdNniyf0ArS" width="480" height="268" frameBorder="0" class="giphy-embed"></iframe>
+	{% endif %}
+</div>
+{% endblock %}
+
