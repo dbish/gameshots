@@ -50,11 +50,19 @@
 		<div class="col">
 		{% for post in posts %}
 			<div class="card">
-				{% if post[2]==1 %}
-				<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top mx-auto border border-warning"></a>
-				{% else %}
-				<a href="{{url_for('viewPost', postid=post[0])}}"><img src="{{post[1]}}" class="card-img-top mx-auto"></a>
+				<a href="{{url_for('viewPost', postid=post[0])}}">
+				{% if '.mp4' in post[1] %}
+					<video controls muted autoplay class="card-img-top mx-auto">
+					<source src="{{post[1]}}" type="video/mp4">
+					</video>
+				{%else %}
+					{% if post[2]==1 %}
+					<img src="{{post[1]}}" class="card-img-top mx-auto border border-warning">
+					{% else %}
+					<img src="{{post[1]}}" class="card-img-top mx-auto">
+					{% endif %}
 				{% endif %}
+				</a>
 			</div>
 		{% endfor %}
 		</div>
