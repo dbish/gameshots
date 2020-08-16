@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -65,9 +66,17 @@ namespace GGShot
         {
             var capturesDir = Windows.Media.Capture.AppCaptureManager.GetCurrentSettings().AppCaptureDestinationFolder.Path;
             var files = Directory.GetFiles(capturesDir, "*.png").Concat(Directory.GetFiles(capturesDir, "*.mp4"));
+            List<BrowseItemViewModel> items = new List<BrowseItemViewModel>();
             foreach (var file in files)
             {
-                BrowseItems.Add(new BrowseItemViewModel(file));
+                items.Add(new BrowseItemViewModel(file));
+            }
+
+            BrowseItems.Clear();
+
+            foreach (var item in items.OrderByDescending(x => x.CreationTime))
+            {
+                BrowseItems.Add(item);
             }
         }
 
@@ -101,7 +110,10 @@ namespace GGShot
                 using (HttpClient client = new HttpClient())
                 {
                     var imagePath = PostItem.LocalPath;
-                    var fileContent = new ByteArrayContent(File.ReadAllBytes(imagePath));
+
+                    byte[] bytes = PostItem.GetEncodedContentBytes();
+
+                    var fileContent = new ByteArrayContent(bytes);
                     client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_loginResult.AccessToken);
                     var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
                     //var response = await client.PostAsync("http://ec2-54-188-110-37.us-west-2.compute.amazonaws.com/api/createPost ", new MultipartFormDataContent()
