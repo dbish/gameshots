@@ -103,6 +103,8 @@ namespace GGShot
         private async void DoPost()
         {
             CurrentMode = MainWindowModes.Busy;
+            var currentItem = PostItem;
+            PostItem = null;
             if (!IsLoggedIn)
             {
                 BusyText = "Logging in...";
@@ -111,19 +113,21 @@ namespace GGShot
 
             if (IsLoggedIn)
             {
-                BusyText = "Posting screenshot...";
                 using (HttpClient client = new HttpClient())
                 {
-                    var imagePath = PostItem.LocalPath;
+                    var imagePath = currentItem.LocalPath;
 
                     byte[] bytes;
-                    if (PostItem.IsVideo)
+                    if (currentItem.IsVideo)
                     {
-                        bytes = PostItem.GetTrimmedVideoBytes(ClipStart, ClipEnd);
+                        BusyText = "Encoding video...";
+                        bytes = await currentItem.GetTrimmedVideoBytesAsync(ClipStart, ClipEnd);
+                        BusyText = "Posting video...";
                     }
                     else
                     {
-                        bytes = PostItem.GetEncodedContentBytes();
+                        bytes = currentItem.GetEncodedContentBytes();
+                        BusyText = "Posting screenshot...";
                     }
 
                     var fileContent = new ByteArrayContent(bytes);
@@ -132,7 +136,7 @@ namespace GGShot
                     //var response = await client.PostAsync("http://ec2-54-188-110-37.us-west-2.compute.amazonaws.com/api/createPost ", new MultipartFormDataContent()
                     {
                         {fileContent, "file", Path.GetFileName(imagePath)},
-                        {new StringContent(PostItem.GameName), "game"},
+                        {new StringContent(currentItem.GameName), "game"},
                         {new StringContent(PostComment), "comment"},
                         {new StringContent(m_settings.UserName), "username"}
                     });
