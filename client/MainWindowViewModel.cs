@@ -292,7 +292,7 @@ namespace GGShot
             set
             {
                 m_currentMode = value;
-                if (m_currentMode == MainWindowModes.Browse || m_currentMode == MainWindowModes.Busy)
+                if (m_currentMode == MainWindowModes.Browse)
                 {
                     PostItem = null;
                 }

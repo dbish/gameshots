@@ -122,7 +122,16 @@ namespace GGShot
             // Example: ffmpeg.exe -i "C:\Users\timmi\Videos\Captures\Sea of Thieves 2020-08-02 23-27-06.mp4" -vf scale=-1:720 -b:v 600k -maxrate 900k output6.mp4
             string tempFile = Path.GetTempFileName() + ".mp4";
             string args = $"-y -i \"{LocalPath}\" -vf scale=-1:720 -b:v 600k -maxrate 600k -ss {startTime} -t {totalTime} \"{tempFile}\"";
-            Process p = Process.Start(FFMpegPath, args);
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                Arguments = args,
+                CreateNoWindow = true,
+                FileName = FFMpegPath,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+
+            Process p = Process.Start(psi);
             // TODO: Don't block the UI while we re-encode
             p.WaitForExit();
             var ret = File.ReadAllBytes(tempFile);
