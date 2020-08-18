@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,16 +38,20 @@ namespace GGShot
         MediaElement m_mediaElement;
         private BrowseItemViewModel m_postItem;
         private string m_postComment;
-        private LoginResult m_loginResult;
         private string m_busyText;
+
+        private Settings m_settings;
 
         public MainWindowViewModel()
         {
+            m_settings = new Settings();
+            m_settings.Load();
             m_timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Normal, OnTimer, Dispatcher.CurrentDispatcher);
             SaveGif = new DelegateCommand(DoSaveGif);
             EscapeCommand = new DelegateCommand(DoEscape);
             PostImage = new DelegateCommand(DoPost);
             LogonCommand = new DelegateCommand(DoLogon);
+            LoadCredentialsFromStore();
             RefreshItems();
         }
 
@@ -114,21 +119,18 @@ namespace GGShot
                     byte[] bytes = PostItem.GetEncodedContentBytes();
 
                     var fileContent = new ByteArrayContent(bytes);
-                    client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_loginResult.AccessToken);
+                    client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_settings.AccessToken);
                     var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
                     //var response = await client.PostAsync("http://ec2-54-188-110-37.us-west-2.compute.amazonaws.com/api/createPost ", new MultipartFormDataContent()
                     {
                         {fileContent, "file", Path.GetFileName(imagePath)},
                         {new StringContent(PostItem.GameName), "game"},
                         {new StringContent(PostComment), "comment"},
-                        {new StringContent(m_loginResult.User.Identity.Name), "username"}
+                        {new StringContent(m_settings.UserName), "username"}
                     });
 
                     string jsonResponse = await response.Content.ReadAsStringAsync();
-
                 }
-
-                    //client.PostAsync()
             }
 
             CurrentMode = MainWindowModes.Browse;
@@ -176,9 +178,28 @@ namespace GGShot
             
             var extraParameters = new Dictionary<string, string>();
             extraParameters.Add("audience", "http://gameshots.gg/api");
-            var client = new Auth0Client(clientOptions);
-            m_loginResult = await client.LoginAsync(extraParameters);
 
+            if (m_settings.TokenExpiration < DateTime.UtcNow)
+            {
+                // TODO: Check cred.LastWriteTimeUtc to see if we need to log in again?
+
+                var client = new Auth0Client(clientOptions);
+                var loginResult = await client.LoginAsync(extraParameters);
+
+                if (!loginResult.IsError)
+                {
+                    m_settings.TokenExpiration = loginResult.AccessTokenExpiration;
+                    m_settings.UserName = loginResult.User.Identity.Name;
+                    m_settings.AccessToken = loginResult.AccessToken;
+                    m_settings.Save();
+                }
+            }
+
+            LoadCredentialsFromStore();
+        }
+
+        private void LoadCredentialsFromStore()
+        {
             OnPropertyChanged(nameof(LoggedOnUser));
         }
 
@@ -292,8 +313,8 @@ namespace GGShot
         public DelegateCommand PostImage { get; private set; }
         public DelegateCommand LogonCommand { get; }
 
-        public bool IsLoggedIn => m_loginResult != null && !m_loginResult.IsError;
-        string UserName => m_loginResult.User.Identity.Name;
+        public bool IsLoggedIn => m_settings.UserName != null;
+        string UserName => m_settings.UserName;
 
         public string LoggedOnUser
         {
