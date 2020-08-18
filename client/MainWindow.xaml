@@ -67,11 +67,12 @@
                     </ListView.ItemContainerStyle>
                 </ListView>
                 <DockPanel Visibility="{Binding TrimVisibility}">
-                    <Button Command="{Binding SaveGif}" DockPanel.Dock="Bottom">Save as gif</Button>
+                    <Button Command="{Binding PostImage}" DockPanel.Dock="Bottom">Post</Button>
+                    <TextBox Text="{Binding PostComment}" AcceptsReturn="True" DockPanel.Dock="Bottom"/>
                     <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipStart}" Maximum="{Binding ClipLength}"/>
                     <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipEnd}" Maximum="{Binding ClipLength}"/>
                     <Slider Orientation="Horizontal" DockPanel.Dock="Bottom" Value="{Binding ClipCurrent}" Maximum="{Binding ClipLength}"/>
-                    <MediaElement Name="mediaElement" Height="400" ScrubbingEnabled="True" Source="{Binding MediaSource}" />
+                    <MediaElement Name="mediaElement" Height="400" ScrubbingEnabled="True" Source="{Binding PostItem.VideoSource}" />
                 </DockPanel>
                 <DockPanel Visibility="{Binding PostVisibility}">
                     <Button Command="{Binding PostImage}" DockPanel.Dock="Bottom">Post</Button>

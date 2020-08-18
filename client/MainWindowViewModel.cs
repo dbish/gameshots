@@ -116,7 +116,15 @@ namespace GGShot
                 {
                     var imagePath = PostItem.LocalPath;
 
-                    byte[] bytes = PostItem.GetEncodedContentBytes();
+                    byte[] bytes;
+                    if (PostItem.IsVideo)
+                    {
+                        bytes = PostItem.GetTrimmedVideoBytes(ClipStart, ClipEnd);
+                    }
+                    else
+                    {
+                        bytes = PostItem.GetEncodedContentBytes();
+                    }
 
                     var fileContent = new ByteArrayContent(bytes);
                     client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_settings.AccessToken);
@@ -138,7 +146,7 @@ namespace GGShot
 
         private void DoEscape()
         {
-            if (CurrentMode == MainWindowModes.Post)
+            if (CurrentMode == MainWindowModes.Post || CurrentMode == MainWindowModes.Trim)
             {
                 CurrentMode = MainWindowModes.Browse;
             }
@@ -150,8 +158,15 @@ namespace GGShot
             PostItem = senderElement.DataContext as BrowseItemViewModel;
             if (PostItem != null)
             {
-                PostComment = "";
-                CurrentMode = MainWindowModes.Post;
+                if (PostItem.IsVideo)
+                {
+                    CurrentMode = MainWindowModes.Trim;
+                }
+                else
+                {
+                    PostComment = "";
+                    CurrentMode = MainWindowModes.Post;
+                }
             }
         }
 
@@ -277,6 +292,10 @@ namespace GGShot
             set
             {
                 m_currentMode = value;
+                if (m_currentMode == MainWindowModes.Browse || m_currentMode == MainWindowModes.Busy)
+                {
+                    PostItem = null;
+                }
                 OnPropertyChanged(nameof(BrowseVisibility));
                 OnPropertyChanged(nameof(TrimVisibility));
                 OnPropertyChanged(nameof(PostVisibility));

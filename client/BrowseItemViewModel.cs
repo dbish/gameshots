@@ -75,6 +75,8 @@ namespace GGShot
             }
         }
 
+        public Uri VideoSource => new Uri(m_localPath);
+
         internal byte[] GetEncodedContentBytes()
         {
             if (IsPicture)
@@ -111,6 +113,31 @@ namespace GGShot
                 string dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 return Path.Combine(dir, "ffmpeg", "ffmpeg.exe");
             }
+        }
+
+        internal byte[] GetTrimmedVideoBytes(int clipStartMs, int clipEndMs)
+        {
+            string startTime = MillisecondsToTimestamp(clipStartMs);
+            string totalTime = MillisecondsToTimestamp(clipEndMs - clipStartMs);
+            // Example: ffmpeg.exe -i "C:\Users\timmi\Videos\Captures\Sea of Thieves 2020-08-02 23-27-06.mp4" -vf scale=-1:720 -b:v 600k -maxrate 900k output6.mp4
+            string tempFile = Path.GetTempFileName() + ".mp4";
+            string args = $"-y -i \"{LocalPath}\" -vf scale=-1:720 -b:v 600k -maxrate 600k -ss {startTime} -t {totalTime} \"{tempFile}\"";
+            Process p = Process.Start(FFMpegPath, args);
+            // TODO: Don't block the UI while we re-encode
+            p.WaitForExit();
+            var ret = File.ReadAllBytes(tempFile);
+            File.Delete(tempFile);
+            return ret;
+        }
+
+        private string MillisecondsToTimestamp(int ms)
+        {
+            int msPart = ms % 1000;
+            int seconds = ms / 1000;
+            int secPart = seconds % 60;
+            int minutes = seconds / 60;
+
+            return $"00:{minutes:00}:{secPart:00}.{msPart:0000}";
         }
 
         private byte[] GetEncodedPictureBytes()
