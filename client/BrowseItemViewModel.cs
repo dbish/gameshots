@@ -75,7 +75,7 @@ namespace GGShot
             }
         }
 
-        public Uri VideoSource => new Uri(m_localPath);
+        public Uri VideoSource => IsVideo ? new Uri(m_localPath) : null;
 
         internal byte[] GetEncodedContentBytes()
         {

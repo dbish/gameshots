@@ -105,13 +105,13 @@ namespace GGShot
             CurrentMode = MainWindowModes.Busy;
             var currentItem = PostItem;
             PostItem = null;
-            if (!IsLoggedIn)
+            if (!IsTokenValid)
             {
                 BusyText = "Logging in...";
                 await DoLogonAsync();
             }
 
-            if (IsLoggedIn)
+            if (IsTokenValid)
             {
                 using (HttpClient client = new HttpClient())
                 {
@@ -181,8 +181,11 @@ namespace GGShot
 
         private void MediaElement_MediaOpened(object sender, System.Windows.RoutedEventArgs e)
         {
-            ClipLength = (int)MediaElement.NaturalDuration.TimeSpan.TotalMilliseconds;
-            ClipEnd = ClipLength;
+            if (PostItem.IsVideo)
+            {
+                ClipLength = (int)MediaElement.NaturalDuration.TimeSpan.TotalMilliseconds;
+                ClipEnd = ClipLength;
+            }
         }
 
         internal async Task DoLogonAsync()
@@ -337,6 +340,7 @@ namespace GGShot
         public DelegateCommand LogonCommand { get; }
 
         public bool IsLoggedIn => m_settings.UserName != null;
+        public bool IsTokenValid => m_settings.UserName != null && m_settings.TokenExpiration > DateTime.UtcNow;
         string UserName => m_settings.UserName;
 
         public string LoggedOnUser
