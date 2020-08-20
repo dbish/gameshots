@@ -44,11 +44,15 @@ function addNewPost(info){
 		profileHTML += pDisplay_name+' @';
 	}
 	profileHTML += '<a href="/gamer/'+info[0]+'">'+info[0]+'</a> <i class="fa fa-gamepad"></i> '
-	profileHTML += '<a href="/game/'+info[10]+'"><i>'+info[1]+'</i></a>';
+	profileHTML += '<a href="/game/'+info[10]+'"><i>'+info[1]+'</i></a> ';
+	profileHTML += '<div class="link"><a href="/post/'+info[6]+'"><i class="fa fa-share-square"></a></div>';
 	header.append(profileHTML);
-	header.append('<div class="coins">'+info[4]+'</div>');
 
-	post.append('<a href="/post/'+info[6]+'"><img src="'+info[2]+'" class="card-img-top"></a>');
+	if (info[2].includes('.mp4')){
+		post.append('<video controls muted autoplay class="card-img-top"><source src="'+info[2]+'" type="video/mp4"></video>');
+	}else{
+		post.append('<img src="'+info[2]+'" class="card-img-top">');
+	}
 
 	var body = $('<div>').appendTo(post);
 	body.addClass('card-body');
@@ -60,7 +64,7 @@ function addNewPost(info){
 		body.append('<button class="btn upvoteButton" onclick="upvotePost(\''+info[6]+'\')">+1</button>');
 		body.append('<button class="btn downvoteButton" onclick="downvotePost(\''+info[6]+'\')" style="display:none">-1</button>');
 	}
-	body.append('<button class="btn more"><i class="fa fa-ellipsis-h"></i></button>');
+	body.append('<div class="coins">'+info[4]+'</div>');
 	
 	var comments = $('<ul>').appendTo(body);
 	comments.addClass('commentsList');
