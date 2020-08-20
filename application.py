@@ -44,7 +44,9 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 ALGORITHMS=['RS256']
 
 def createSlug(name):
-    name = name.translate(str.maketrans('', '', string.punctuation)).lower().replace(" ", "-")
+    punctuation_to_delete = '''!"#$%&()*+,./:;<=>?@[\]^_`{|}~'''
+    name = name.replace("'", "-")
+    name = name.translate(str.maketrans('', '', punctuation_to_delete)).lower().replace(" ", "-")
     return name
 
 
@@ -544,6 +546,7 @@ def findGame():
     result = request.form
     try:
         game = request.form['game'] 
+        print(f'game:{game}')
         slug = createSlug(game)
         return redirect(url_for('viewGame', game=slug))
     except:
@@ -629,7 +632,7 @@ def viewGame(game):
 
 
 
-    return render_template('game.html', posts=posts, image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=createSlug(name),
+    return render_template('game.html', posts=posts, image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=game,
             games_following=games_following, screen_name=username)
 
 @app.route('/gamer/<username>', methods=['GET', 'POST'])
@@ -701,10 +704,6 @@ def viewPost(postid):
     gameThumbLink = 'https://s3-us-west-2.amazonaws.com/gameshots.gg/defaultThumb.jpg'
 
     return render_template('post.html', post=post, screen_name=username, gameThumbnail=gameThumbLink)
-
-def createSlug(name):
-    name = name.translate(str.maketrans('', '', string.punctuation)).lower().replace(" ", "-")
-    return name
 
 @app.route('/login')
 def login():
