@@ -29,9 +29,9 @@
 				{{post.display_name}} @<a href="{{url_for('viewProfile',username=post.username)}}">{{post.username}}</a> <i class="fa fa-gamepad"></i> 
 				{% endif %}
 				<a href="{{url_for('viewGame',game=post.gameSlug)}}"><i>{{post.game}}</i></a>
-				<div class="coins">{{post.coins}}</i></div>
+				<div class="link"><a href="{{url_for('viewPost', postid=post.id)}}"><i class="fa fa-share-square"></i></a></div>
+
 			</div>
-			<a href="{{url_for('viewPost', postid=post.id)}}">
 		       {% if ('.mp4' in post.image) %}
                         <video controls muted autoplay class="card-img-top">
                                 <source src="{{post.image}}" type="video/mp4">
@@ -39,7 +39,6 @@
                         {% else %}
                         <img src="{{post.image}}" class="card-img-top">
                         {% endif %}
-			</a>
 
 			<div class="card-body">
 				{% if post.voted %}
@@ -50,7 +49,7 @@
 				<button class="btn downvoteButton" onclick="downvotePost('{{post.id}}')" style="display:none">-1</button> 
 
 				{% endif %}
-				<button class="btn more"><i class="fa fa-ellipsis-h"></i></button> 
+				<div class="coins">{{post.coins}}</i></div>
 				<ul class="commentsList">
 					<li class="editorial">{{post.time}}: {{post.editorial}}</li>
 					{% for comment in post.comments %}

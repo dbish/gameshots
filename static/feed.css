@@ -24,10 +24,14 @@
 	margin-bottom: 50px;
 }
 
-.coins {
+.link, .coins {
 	text-align:right;
 	float:right;
 	margin:0;
+}
+
+.coins {
+	color:white;
 }
 
 .more {
