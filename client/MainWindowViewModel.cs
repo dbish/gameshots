@@ -210,7 +210,7 @@ namespace GGShot
 
                 if (!loginResult.IsError)
                 {
-                    m_settings.TokenExpiration = loginResult.AccessTokenExpiration;
+                    m_settings.TokenExpiration = loginResult.AccessTokenExpiration.ToUniversalTime();
                     m_settings.UserName = loginResult.User.Identity.Name;
                     m_settings.AccessToken = loginResult.AccessToken;
                     m_settings.Save();
