@@ -63,15 +63,8 @@ namespace GGShot
         {
             get
             {
-                if (m_localPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new Uri(m_localPath);
-                }
-                else
-                {
-                    var sf = ShellFile.FromFilePath(m_localPath);
-                    return sf.Thumbnail.ExtraLargeBitmapSource;
-                }
+                var sf = ShellFile.FromFilePath(m_localPath);
+                return sf.Thumbnail.ExtraLargeBitmapSource;
             }
         }
 
