@@ -27,6 +27,37 @@ function readURL(input) {
   }
 }
 
+function addTag(){
+	var tagList = $('#tagList');
+	var len = $('#tagList li').length;
+	var newInput = $('<input type="text" name="tag'+(len).toString()+'" class="tag"/>');
+	var newTag = $('<li>');
+	
+	newInput.autocomplete({
+                source: autoCompleteTags,
+                minLength: 3,
+                select: function(event, ui){
+                        console.log('selected:'+ui.item.value);
+                }
+        });
+	newTag.append(newInput);
+
+	tagList.append(newTag);
+}
+
+function autoCompleteTags(request, response){
+			$.ajax({
+				url: "/autocompleteTag",
+				dataType: "json",
+				data: {
+					term: request.term
+				},
+				success: function(data){
+					response(data);
+				}
+			});
+}
+
 window.onload = function(){
 	$("#imgInput").change(function() {
 	  readURL(this);
@@ -44,8 +75,17 @@ window.onload = function(){
 					response(data);
 				}
 			});
+
 		},
 		minLength: 2,
+		select: function(event, ui){
+			console.log('selected:'+ui.item.value);
+		}
+	});
+
+	$('.tag').autocomplete({
+		source: autoCompleteTags,
+		minLength: 3,
 		select: function(event, ui){
 			console.log('selected:'+ui.item.value);
 		}

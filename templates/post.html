@@ -21,7 +21,15 @@
 				<a href="{{url_for('viewGame',game=post.gameSlug)}}"><i>{{post.game}}</i></a>
                                 {% endif %}
                                 <div class="coins">{{post.coins}}</i></div>
+				{% if post.tags|length > 0 %}
+                                <div class="tags">&nbsp w/:
+                                        {% for tag in post.tags %}
+                                        <a href="{{url_for('viewProfile', username=tag)}}" class="badge badge-pill badge-secondary">{{tag}}</a>
+                                        {% endfor %}
+                                </div>
+                                {% endif %}
                         </div>
+
 
 			{% if ('.mp4' in post.image) %}
 			<video controls muted autoplay>

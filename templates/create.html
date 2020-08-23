@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <script src="{{url_for('static', filename='create.js')}}"></script>
+
 <div class="container">
         <div>
-		<form action='{{url_for('create')}}' method="POST" enctype="multipart/form-data">
+		<form action='{{url_for('create')}}' method="POST" enctype="multipart/form-data" id="search">
 			<div class="ui-widget">
 				<label class="text-light" for="game">Game</label> 
 				<input name = "game" id="game"/>
@@ -17,6 +18,15 @@
                                 <source src="#" type="video/mp4">
                         </video>
 
+			<div id="tags">
+				<p class='text-light'>playing with:</p>
+				<ol id='tagList'>
+					<li>
+					<input type="text" name="tag0" class="tag"/>
+					</li>
+				</ol>
+				<button onclick="addTag()" type="button" class="btn btn-outline-light">+</button>
+			</div>
 			<p class='text-light'>commentary<input type = "text" name = "comment" /></p>
 			<p><input type = "submit" value = "submit" /></p>
 		</form>

@@ -34,7 +34,7 @@ SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 app = application
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameSlug', 'display_name'])
+Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameSlug', 'display_name', 'tags'])
 Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color', 'display_name'])
 Notification = collections.namedtuple("Notification", ['id', 'username', 'link', 'info', 'timestamp', 'read'])
 
@@ -286,6 +286,16 @@ def autoCompleteGames():
     games = [game['name'] for game in all_games]
     return jsonify(games)
     
+@app.route('/autocompleteTag')
+@requires_auth
+def autoCompleteTag():
+    name = request.args.get('term')
+    print(name)
+    tag_suggestions = searchUsers(name)
+    print(tag_suggestions)
+    tag_suggestions = [user['fields']['username'][0] for user in tag_suggestions]
+    print(tag_suggestions)
+    return jsonify(tag_suggestions)
 
 def createComment(user, text, postID):
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
@@ -378,6 +388,21 @@ def getNewNotifications(user, timestamp):
     notifications = cur.fetchall() 
     return notifications
 
+def createTags(postID, tags):
+    query = f"INSERT INTO Tags (postID, user) VALUES (%s,%s)"
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            for tag in tags:
+                vals = (postID, tag) 
+                cur.execute(query, vals) 
+        rds_con.commit()
+    finally:
+        rds_con.close()
+
+
+
 def createPost(user, picture, game, info, completed):
     postID = str(uuid.uuid4())
     #upload to S3 and get link
@@ -406,6 +431,8 @@ def createPost(user, picture, game, info, completed):
         rds_con.commit()
     finally:
         rds_con.close()
+
+    return postID
 
 @app.route('/settings', methods=['POST', 'GET'])
 @requires_auth
@@ -466,7 +493,19 @@ def create():
                 filename = file.filename
                 if 'completed' in request.form:
                     completed = True
-                createPost(username, file, game, comment, completed)
+                postID = createPost(username, file, game, comment, completed)
+                if ('tag0' in request.form) and (request.form['tag0'] != ''):
+                    tagCount = 0
+                    tags = []
+                    curTag = 'tag'+str(tagCount)
+                    while curTag in request.form:
+                        if (request.form[curTag] != ''):
+                            tags.append(request.form[curTag])
+                        tagCount+=1
+                        curTag = 'tag'+str(tagCount)
+                    if len(tags) > 0:
+                        print(tags)
+                        createTags(postID, tags) 
                 #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 return redirect(url_for('home'))
         else:
@@ -561,15 +600,21 @@ def searchResults():
     hits = session['hits']
     return render_template('searchResults.html', search=query, users=hits, screen_name=username)
 
+def searchUsers(user):
+    print(f'user:{user}')
+    cloudsearch = aws_session.client('cloudsearchdomain', endpoint_url='http://doc-gg-test-6bwc55aehpsty6w5qfiv4pbsmy.us-west-2.cloudsearch.amazonaws.com', region_name='us-west-2')
+    response = cloudsearch.search(query=user+'*')
+    hits = response['hits']['hit']
+    return hits
+
+
 @app.route('/findFriends', methods=['POST'])
 @requires_auth
 def findFriends():
     result = request.form
     try:
         name = request.form['username'] 
-        cloudsearch = aws_session.client('cloudsearchdomain', endpoint_url='http://doc-gg-test-6bwc55aehpsty6w5qfiv4pbsmy.us-west-2.cloudsearch.amazonaws.com', region_name='us-west-2')
-        response = cloudsearch.search(query=name+'*')
-        hits = response['hits']['hit']
+        hits = searchUsers(name) 
         if len(hits) == 1:
             username = hits[0]['id']
             return redirect(url_for('viewProfile', username=username))
@@ -683,7 +728,7 @@ def viewPost(postid):
         user = info[0]
         displayNames = {}
         display_name = getDisplayName(user, displayNames)
-        post = Post(info[0], info[2], info[1], info[3], info[6], info[4].strftime("%Y-%m-%d %H:%M:%S"), postid, [],  info[5], (postid in voted), createSlug(info[2]), display_name)
+        post = Post(info[0], info[2], info[1], info[3], info[6], info[4].strftime("%Y-%m-%d %H:%M:%S"), postid, [],  info[5], (postid in voted), createSlug(info[2]), display_name, [])
 
         query = f"SELECT commentID, user, text, createdtime FROM COMMENTS where postID='{postid}' ORDER BY createdtime ASC"
         with rds_con:
@@ -694,6 +739,17 @@ def viewPost(postid):
             user = row[1]
             display_name = getDisplayName(user, displayNames)
             post.comments.append(Comment(row[1], row[2], row[3], row[0], getColor(row[1]), display_name))
+
+        query = f"SELECT user FROM Tags where postID='{postid}'"
+
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+
+        for row in cur.fetchall():
+            user = row[0]
+            post.tags.append(user)
+
     finally:
         rds_con.close()
 
@@ -1111,7 +1167,7 @@ def getGamePosts(before, game):
             game = row[3]
             user = row[1]
             display_name = getDisplayName(user, displayNames)
-            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name)
+            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name, [])
             postRefs[postID] = newPost 
             posts.append(newPost)
 
@@ -1120,6 +1176,7 @@ def getGamePosts(before, game):
             placeholder = '%s'
             placeholders = ', '.join(placeholder for postID in postRefs.keys())
             query = f"SELECT postID, commentID, user, text, createdtime FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
+
             with rds_con:
                 cur = rds_con.cursor()
                 cur.execute(query, tuple(postRefs.keys()))
@@ -1130,6 +1187,18 @@ def getGamePosts(before, game):
                 display_name = getDisplayName(user, displayNames)
                 comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]), display_name)
                 postRefs[postID].comments.append(comment)
+
+            query = f"SELECT postID, user FROM Tags where postID in ({placeholders})"
+
+            with rds_con:
+                cur = rds_con.cursor()
+                cur.execute(query, tuple(postRefs.keys()))
+
+            for row in cur.fetchall():
+                postID = row[0]
+                user = row[1]
+                postRefs[postID].tags.append(user)
+
     finally:
         rds_con.close()
 
@@ -1183,7 +1252,7 @@ def getPosts(before):
             game = row[3]
             user = row[1]
             display_name = getDisplayName(user, displayNames)
-            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name)
+            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name, [])
             postRefs[postID] = newPost 
             posts.append(newPost)
 
@@ -1202,6 +1271,18 @@ def getPosts(before):
                 display_name = getDisplayName(user, displayNames)
                 comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]), display_name)
                 postRefs[postID].comments.append(comment)
+
+            query = f"SELECT postID, user FROM Tags where postID in ({placeholders})"
+
+            print(query)
+            with rds_con:
+                cur = rds_con.cursor()
+                cur.execute(query, tuple(postRefs.keys()))
+
+            for row in cur.fetchall():
+                postID = row[0]
+                user = row[1]
+                postRefs[postID].tags.append(user)
     finally:
         rds_con.close()
 
