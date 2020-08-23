@@ -290,11 +290,8 @@ def autoCompleteGames():
 @requires_auth
 def autoCompleteTag():
     name = request.args.get('term')
-    print(name)
     tag_suggestions = searchUsers(name)
-    print(tag_suggestions)
     tag_suggestions = [user['fields']['username'][0] for user in tag_suggestions]
-    print(tag_suggestions)
     return jsonify(tag_suggestions)
 
 def createComment(user, text, postID):
@@ -390,6 +387,7 @@ def getNewNotifications(user, timestamp):
 
 def createTags(postID, tags):
     query = f"INSERT INTO Tags (postID, user) VALUES (%s,%s)"
+    tags = list(set(tags))
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
     try:
         with rds_con:
@@ -397,6 +395,7 @@ def createTags(postID, tags):
             for tag in tags:
                 vals = (postID, tag) 
                 cur.execute(query, vals) 
+                addNotification(tag, url_for('viewPost', postid=postID), f"you were tagged in a post!")
         rds_con.commit()
     finally:
         rds_con.close()
@@ -753,10 +752,6 @@ def viewPost(postid):
     finally:
         rds_con.close()
 
-    #try:
-    #    image_id = getCoverID(post.gameSlug)
-    #    gameThumbLink = f'http://images.igdb.com/igdb/image/upload/t_thumb/{image_id}.jpg'
-    #except:
     gameThumbLink = 'https://s3-us-west-2.amazonaws.com/gameshots.gg/defaultThumb.jpg'
 
     return render_template('post.html', post=post, screen_name=username, gameThumbnail=gameThumbLink)
