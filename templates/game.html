@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <link rel="stylesheet" href="{{url_for('static', filename='game.css')}}">
-<link rel="stylesheet" href="{{url_for('static', filename='post.css')}}">
 <link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
 <script src="{{url_for('static', filename='post.js')}}"></script>
 <script src="{{url_for('static', filename='viewGame.js')}}"></script>
@@ -55,7 +54,15 @@
 
 			</div>
 			<a href="{{url_for('viewPost', postid=post.id)}}">
-                       {% if ('.mp4' in post.image) %}
+                        {% if ('.twitch.tv' in post.image) or ('.youtube.com' in post.image) %}
+                        <iframe
+			    class="card-img-top"
+                            src="{{post.image}}"
+                            frameborder="0"
+                            scrolling="no"
+                            allowfullscreen="true">
+                        </iframe>
+                        {% elif ('.mp4' in post.image) %}
                         <video controls muted autoplay class="card-img-top">
                                 <source src="{{post.image}}" type="video/mp4">
                         </video>

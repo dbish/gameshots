@@ -50,9 +50,18 @@
 		<div class="col">
 		{% for post in posts %}
 			<div class="card">
-				<a href="{{url_for('viewPost', postid=post[0])}}">
-				{% if '.mp4' in post[1] %}
-					<video controls muted autoplay class="card-img-top mx-auto">
+				<div class='overlay'>
+					<a href="{{url_for('viewPost', postid=post[0])}}"><i class="fa fa-share-square"></i></a>
+				</div>
+				{% if ('.twitch.tv' in post[1]) or ('.youtube.com' in post[1]) %}
+				<iframe class="card-img-top"
+				    src="{{post[1]}}"
+				    frameborder="0"
+				    scrolling="no"
+				    allowfullscreen="true">
+				</iframe>
+				{% elif ('.mp4' in post[1]) %}
+					<video controls muted autoplay class="card-img-top">
 					<source src="{{post[1]}}" type="video/mp4">
 					</video>
 				{%else %}
@@ -62,7 +71,6 @@
 					<img src="{{post[1]}}" class="card-img-top mx-auto">
 					{% endif %}
 				{% endif %}
-				</a>
 			</div>
 		{% endfor %}
 		</div>

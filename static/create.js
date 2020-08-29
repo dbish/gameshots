@@ -27,6 +27,30 @@ function readURL(input) {
   }
 }
 
+function previewLink(){
+	var clipSlug = $('#linkInput').val();
+	if (clipSlug != ''){
+		link = 'https://clips.twitch.tv/embed?clip='+clipSlug+'&parent=gameshots.gg&parent=ec2-54-188-110-37.us-west-2.compute.amazonaws.com';
+		$('#twitchPreview').attr('src', link);	
+		$('#twitchPreview').show();
+	}
+	else{
+		$('#twitchPreview').hide();
+	}
+	
+}
+
+function previewYoutubeLink(){
+	var clipSlug = $('#youtubeLinkInput').val();
+	if (clipSlug != ''){
+		link = 'https://www.youtube.com/embed/'+clipSlug+'?&autoplay=1'
+		$('#youtubePreview').attr('src', link);	
+		$('#youtubePreview').show();
+	}else{
+		$('#youtubePreview').hide();
+	}
+}
+
 function addTag(){
 	var tagList = $('#tagList');
 	var len = $('#tagList li').length;
@@ -58,9 +82,48 @@ function autoCompleteTags(request, response){
 			});
 }
 
+function showTwitchInput(){
+	$('.shotDiv').hide();
+	$('#youtubePreview').attr('src', '');	
+	$('#videoPreview').trigger('pause');
+	$('#twitchLinkDiv').show();
+	var clipSlug = $('#linkInput').val();
+	if (clipSlug != ''){
+		link = 'https://clips.twitch.tv/embed?clip='+clipSlug+'&parent=gameshots.gg&parent=ec2-54-188-110-37.us-west-2.compute.amazonaws.com';
+		$('#twitchPreview').attr('src', link);	
+	}
+}
+
+function showMediaInput(){
+	$('.shotDiv').hide();
+	$('#youtubePreview').attr('src', '');	
+	$('#twitchPreview').attr('src', '');	
+	$('#mediaDiv').show();
+}
+
+function showYoutubeInput(){
+	$('.shotDiv').hide();
+	$('#twitchPreview').attr('src', '');	
+	$('#videoPreview').trigger('pause');
+	$('#youtubeLinkDiv').show();
+	var clipSlug = $('#youtubeLinkInput').val();
+	if (clipSlug != ''){
+		link = 'https://www.youtube.com/embed/'+clipSlug+'?&autoplay=1'
+		$('#youtubePreview').attr('src', link);	
+	}
+}
+
 window.onload = function(){
 	$("#imgInput").change(function() {
 	  readURL(this);
+	});
+
+	$("#linkInput").change(function() {
+		previewLink();
+	});
+
+	$("#youtubeLinkInput").change(function() {
+		previewYoutubeLink();
 	});
 
 	$('#game').autocomplete({

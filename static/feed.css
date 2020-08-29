@@ -1,3 +1,9 @@
+
+iframe {
+        min-height: 600px;
+}
+
+
 .deleteButton {
 	margin:auto;
 	width:15%;

@@ -43,6 +43,13 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 ALGORITHMS=['RS256']
 
+@app.before_request
+def before_request():
+    if not request.is_secure:
+        url = request.url.replace('http://', 'https://', 1)
+        code = 301
+        return redirect(url, code=code)
+
 def createSlug(name):
     punctuation_to_delete = '''!"#$%&()*+,./:;<=>?@[\]^_`{|}~'''
     name = name.replace("'", "-")
@@ -78,6 +85,8 @@ def get_token_auth_header():
 
     token = parts[1]
     return token
+
+
 
 # Error handler
 class AuthError(Exception):
@@ -266,6 +275,7 @@ def api_create_post():
             filename = file.filename
             if 'completed' in request.form:
                 completed = True
+            s3_link = uploadToS3(file)
             createPost(username, file, game, comment, completed)
             return jsonify('post created')
         else:
@@ -402,9 +412,7 @@ def createTags(postID, tags):
 
 
 
-def createPost(user, picture, game, info, completed):
-    postID = str(uuid.uuid4())
-    #upload to S3 and get link
+def uploadToS3(picture):
     s3 = aws_session.resource('s3')
     bucket = s3.Bucket('gameshots.gg')
     prefix = str(uuid.uuid4())
@@ -413,8 +421,12 @@ def createPost(user, picture, game, info, completed):
         filename = filename[-100:]
     filename = prefix + filename
     bucket.upload_fileobj(picture, filename, ExtraArgs={'ACL':'public-read'})
+    link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{filename}'
+    return link
+
+def createPost(user, link, game, info, completed):
+    postID = str(uuid.uuid4())
     slug = createSlug(game)
-    s3_link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{filename}'
     comp_val = 0
     query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed, slug) VALUES (%s,%s,%s,%s,%s,%s,%s)"
     if completed:
@@ -425,7 +437,7 @@ def createPost(user, picture, game, info, completed):
     try:
         with rds_con:
             cur = rds_con.cursor()
-            vals = (postID, user, s3_link, game, info, comp_val, slug)
+            vals = (postID, user, link, game, info, comp_val, slug)
             cur.execute(query, vals) 
         rds_con.commit()
     finally:
@@ -481,34 +493,40 @@ def create():
     completed = False
     if request.method == 'POST':
         result = request.form
-        if 'file' in request.files:
+        if request.form['option'] == 'media':
             file = request.files['file']
             if file.filename == '':
                 flash('no selected file')
                 return redirect(url_for('create'))
             if file and allowed_file(file.filename):
-                game = request.form['game']
-                comment = request.form['comment']
-                filename = file.filename
-                if 'completed' in request.form:
-                    completed = True
-                postID = createPost(username, file, game, comment, completed)
-                if ('tag0' in request.form) and (request.form['tag0'] != ''):
-                    tagCount = 0
-                    tags = []
-                    curTag = 'tag'+str(tagCount)
-                    while curTag in request.form:
-                        if (request.form[curTag] != ''):
-                            tags.append(request.form[curTag])
-                        tagCount+=1
-                        curTag = 'tag'+str(tagCount)
-                    if len(tags) > 0:
-                        print(tags)
-                        createTags(postID, tags) 
-                #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                return redirect(url_for('home'))
+                link = uploadToS3(file)
+            else:
+                return redirect(url_for('create'))
+
+        elif request.form['option'] == 'twitch': 
+            clipSlug = request.form['linkInput']
+            link = 'https://clips.twitch.tv/embed?clip='+clipSlug+'&parent=gameshots.gg&parent=ec2-54-188-110-37.us-west-2.compute.amazonaws.com&muted=true';
+
         else:
-            return redirect(url_for('create'))
+            clipSlug = request.form['youtubeLinkInput']
+            link = 'https://www.youtube.com/embed/'+clipSlug+'?&autoplay=1&mute=1'
+        game = request.form['game']
+        comment = request.form['comment']
+        if 'completed' in request.form:
+            completed = True
+        postID = createPost(username, link, game, comment, completed)
+        if ('tag0' in request.form) and (request.form['tag0'] != ''):
+            tagCount = 0
+            tags = []
+            curTag = 'tag'+str(tagCount)
+            while curTag in request.form:
+                if (request.form[curTag] != ''):
+                    tags.append(request.form[curTag])
+                tagCount+=1
+                curTag = 'tag'+str(tagCount)
+            if len(tags) > 0:
+                createTags(postID, tags) 
+        return redirect(url_for('home'))
     return render_template('create.html')
 
 @app.route('/callback')
@@ -584,7 +602,6 @@ def findGame():
     result = request.form
     try:
         game = request.form['game'] 
-        print(f'game:{game}')
         slug = createSlug(game)
         return redirect(url_for('viewGame', game=slug))
     except:
@@ -600,7 +617,6 @@ def searchResults():
     return render_template('searchResults.html', search=query, users=hits, screen_name=username)
 
 def searchUsers(user):
-    print(f'user:{user}')
     cloudsearch = aws_session.client('cloudsearchdomain', endpoint_url='http://doc-gg-test-6bwc55aehpsty6w5qfiv4pbsmy.us-west-2.cloudsearch.amazonaws.com', region_name='us-west-2')
     response = cloudsearch.search(query=user+'*')
     hits = response['hits']['hit']
@@ -1269,7 +1285,6 @@ def getPosts(before):
 
             query = f"SELECT postID, user FROM Tags where postID in ({placeholders})"
 
-            print(query)
             with rds_con:
                 cur = rds_con.cursor()
                 cur.execute(query, tuple(postRefs.keys()))
@@ -1284,5 +1299,6 @@ def getPosts(before):
     return posts
 
 if __name__=='__main__':
-    application.run(host='0.0.0.0', port='80', debug=True)
+    #application.run(host='0.0.0.0', port='80', debug=True)
+    application.run(host='0.0.0.0', port='443', debug=True, ssl_context='adhoc')
 

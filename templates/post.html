@@ -31,7 +31,14 @@
                         </div>
 
 
-			{% if ('.mp4' in post.image) %}
+			{% if ('.twitch.tv' in post.image) or ('.youtube.com' in post.image) %}
+			<iframe
+			    src="{{post.image}}"
+			    frameborder="0"
+			    scrolling="no"
+			    allowfullscreen="true">
+			</iframe>
+			{% elif ('.mp4' in post.image) %}
 			<video controls muted autoplay>
 				<source src="{{post.image}}" type="video/mp4">
 			</video>

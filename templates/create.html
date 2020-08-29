@@ -11,13 +11,73 @@
 				<label class="text-light" for="completed">mark completed:</label> 
 				<input type="checkbox" id="completed" name="completed" value="completed">
 			</div>
-			<input type="file" id="imgInput" name='file'>
-			<p class="text-light">*files accepted:mp4(video),png,jpg,gif</p>
-			<img id='imgPreview' src="#" style="display:none"/>
-			<video id="videoPreview" style="display:none"  controls autoplay>
-                                <source src="#" type="video/mp4">
-                        </video>
+			<div id="typeDiv">
+			<label class="text-light" for="game">shot:</label> 
+			<div class="btn-group btn-group-toggle" data-toggle="buttons">
+			  <label class="btn btn-outline-light active" onclick="showMediaInput()">
+			    <input type="radio" name="option" id="option1" checked value='media'> 
+			      <i class="fa fa-image fa-2x"></i>
+                                <i class="fa fa-video fa-2x"></i>
+                                .jpg/.png/.gif/.mp4
+			  </label>
+			  <label class="btn btn-outline-light" onclick="showTwitchInput()">
+			    <input type="radio" name="option" id="option2" autocomplete="off" value='twitch'> 
+			     <i class="fa fa-link fa-2x"></i>
+                                twitch clip
+			  </label>
+			  <label class="btn btn-outline-light" onclick="showYoutubeInput()">
+			    <input type="radio" name="option" id="option3" autocomplete="off" value='youtube'>
+			      <i class="fa fa-link fa-2x"></i>
+                                youtube link
+			  </label>
+			</div>
 
+			</div>
+			<div id="mediaDiv" class="shotDiv">
+				<input type="file" id="imgInput" name='file'>
+				<p class="text-light">*files accepted:mp4(video),png,jpg,gif</p>
+				<img id='imgPreview' src="#" style="display:none"/>
+				<video id="videoPreview" style="display:none"  controls autoplay>
+					<source src="#" type="video/mp4">
+				</video>
+			</div>
+			<div id="twitchLinkDiv" style="display:none" class="shotDiv">
+				<div class="input-group mb-2">
+				<div class="input-group-prepend">
+				<div class="input-group-text">
+					https://www.twitch.tv/*user*/clip/
+				</div>
+				</div>
+				<input type="text" name="linkInput" id="linkInput" placeholder="<clip id>"/>
+				</div>
+				<div>
+					<iframe id='twitchPreview'
+					    src=""
+					    height="720"
+					    width="1280"
+					    frameborder="0"
+					    scrolling="no"
+					    allowfullscreen="true" style="display:none">
+					</iframe>
+				</div>
+
+			</div>
+			<div id="youtubeLinkDiv" style="display:none" class="shotDiv">
+				<div class="input-group mb-2">
+				<div class="input-group-prepend">
+				<div class="input-group-text">
+					https://www.youtube.com/watch?v=
+				</div>
+				</div>
+				<input type="text" name="youtubeLinkInput" id="youtubeLinkInput" placeholder="<video id>"/>
+				</div>
+				<div>
+					<iframe id="youtubePreview" width="560" height="315"
+					src=""frameborder="0"
+					allowfullscreen style="display:none"></iframe>
+				</div>
+
+			</div>
 			<div id="tags">
 				<p class='text-light'>playing with:</p>
 				<ol id='tagList'>
@@ -27,7 +87,7 @@
 				</ol>
 				<button onclick="addTag()" type="button" class="btn btn-outline-light">+</button>
 			</div>
-			<p class='text-light'>commentary<input type = "text" name = "comment" /></p>
+			<p class='text-light'>commentary<textarea name ="comment" cols=80 ></textarea></p>
 			<p><input type = "submit" value = "submit" /></p>
 		</form>
         </div>
