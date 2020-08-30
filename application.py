@@ -440,6 +440,45 @@ def uploadToS3(picture):
     link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{filename}'
     return link
 
+
+def updatePost(postID, game, info, completed, cur_tags, old_tags):
+    slug = createSlug(game)
+    query = f"UPDATE POSTS SET game=%s, info=%s, completed=%s where postID='{postID}'"
+    deleted_tags = old_tags.difference(cur_tags) 
+    added_tags = cur_tags.difference(old_tags)
+    comp_val = 0
+    if completed:
+        comp_val = 1
+
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            vals = (game, info, comp_val)
+            cur.execute(query, vals)
+
+            if len(deleted_tags) > 0:
+                placeholder = '%s'
+                placeholders = ', '.join(placeholder for tag in deleted_tags)
+                query = f"DELETE from Tags where postID='{postID}' and user in ({placeholders})"
+                cur.execute(query, list(deleted_tags))
+
+            if len(added_tags) > 0:
+                query = f"INSERT INTO Tags (postID, user) VALUES (%s,%s)"
+                for tag in added_tags:
+                    vals = (postID, tag) 
+                    cur.execute(query, vals) 
+                    addNotification(tag, url_for('viewPost', postid=postID), f"you were tagged in a post!")
+
+
+        rds_con.commit()
+    finally:
+        rds_con.close()
+
+    
+
+
+
 def createPost(user, link, game, info, completed):
     postID = str(uuid.uuid4())
     slug = createSlug(game)
@@ -736,6 +775,61 @@ def viewProfile(username):
     if username in filtered_following:
         filtered_games = filtered_following[username]
     return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games, filtered=filtered_games, display_name=getDisplayName(username, {})) 
+
+@app.route('/edit/<postid>', methods=['GET', 'POST'])
+@requires_auth
+def editPost(postid):
+    username = session[constants.PROFILE_KEY]['name']
+    query = f"SELECT user, picture, game, info, createdtime, completed, coins FROM POSTS where postid='{postid}'"
+    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
+    try:
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+
+        info = cur.fetchone()
+        user = info[0]
+        if user != username:
+            return redirect(url_for('viewPost', postid=postid))
+        displayNames = {}
+        display_name = getDisplayName(user, displayNames)
+        post = Post(info[0], info[2], info[1], info[3], info[6], info[4].strftime("%Y-%m-%d %H:%M:%S"), postid, [],  info[5], False, createSlug(info[2]), display_name, [])
+
+        query = f"SELECT user FROM Tags where postID='{postid}'"
+        with rds_con:
+            cur = rds_con.cursor()
+            cur.execute(query)
+
+        for row in cur.fetchall():
+            user = row[0]
+            post.tags.append(user)
+
+        if request.method == 'POST':
+            game = request.form['game']
+            info = request.form['comment']
+            completed = False
+            if 'completed' in request.form:
+                completed = True
+            cur_tags = []
+            if ('tag0' in request.form) and (request.form['tag0'] != ''):
+                tagCount = 0
+                curTag = 'tag'+str(tagCount)
+                while curTag in request.form:
+                    if (request.form[curTag] != ''):
+                        cur_tags.append(request.form[curTag])
+                    tagCount+=1
+                    curTag = 'tag'+str(tagCount)
+            updatePost(postid, game, info, completed, set(cur_tags), set(post.tags))
+            return redirect(url_for('viewPost', postid=postid))
+
+
+    finally:
+        rds_con.close()
+
+    return render_template('editPost.html', post=post)
+
+
+    
 
 @app.route('/post/<postid>')
 def viewPost(postid):

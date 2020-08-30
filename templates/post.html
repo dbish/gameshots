@@ -7,6 +7,11 @@
                 username = "{{screen_name}}";
         </script>
 <div class="container-fluid">
+	{% if post.username == screen_name %}
+	<div>
+		<a class='btn btn-primary' href="{{url_for('editPost', postid=post.id)}}" role="button">Edit Post</a>
+	</div>
+	{% endif %}
 	{% if post.completed == 1 %}
 	<div class="card border complete border-warning post bg-dark" id={{post.id}}>
 	{% else %}
@@ -90,10 +95,5 @@
 				{% endif %}
 			</div>
 		</div>
-	{% if post.username == screen_name %}
-	<form class='deleteButton' action='{{url_for('deletePost', postID=post.id)}}' method="POST">
-	<input type="submit" class="btn btn-danger" value="delete post"/>
-	</form>
-	{% endif %}
 </div>
 {% endblock %}

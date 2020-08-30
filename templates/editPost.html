@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{url_for('static', filename='edit.css')}}">
+<script src="{{url_for('static', filename='editPost.js')}}"></script>
+        <script type="text/javascript">
+                username = "{{screen_name}}";
+        </script>
+<div class="container-fluid">
+	<div class="post" id={{post.id}}>
+		<form action='{{url_for('editPost', postid=post.id)}}' method="POST" id="search">
+			   <div class="ui-widget">
+                                <label class="text-light" for="game">Game</label>
+				<input name = "game" id="game" value="{{post.game}}">
+                                <label class="text-light" for="completed">mark completed:</label>
+                                <input type="checkbox" id="completed" name="completed" value="completed"
+
+				{%if post.completed %}
+				checked
+				{% endif %}
+				>
+			    </div>
+	                       <div>
+				        <div id="tags">
+					<p class='text-light'>playing with:</p>
+
+					<ol id='tagList'>
+					{% if post.tags|length > 0 %}
+					{% for tag in post.tags %}
+					<li>
+						<input type="text" id="tag{{loop.index0}}" name="tag{{loop.index0}}" class="tag" value="{{tag}}">
+						<button onclick="removeTag('tag{{loop.index0}}')" type="button" class="btn btn-danger">-</button>
+					</li>
+					{% endfor %}
+					</div>
+					{% endif %}
+					</ol>
+					 <button onclick="addTag()" type="button" class="btn btn-outline-light">+</button>
+				</div>
+
+
+			{% if ('.twitch.tv' in post.image) or ('.youtube.com' in post.image) %}
+			<iframe
+			    src="{{post.image}}"
+			    frameborder="0"
+			    scrolling="no"
+			    allowfullscreen="true">
+			</iframe>
+			{% elif ('.mp4' in post.image) %}
+			<video controls muted autoplay>
+				<source src="{{post.image}}" type="video/mp4">
+			</video>
+			{% else %}
+			<img src="{{post.image}}">
+			{% endif %}
+			<p class='text-light'>commentary<textarea name ="comment" cols=80>{{post.editorial}}</textarea></p>
+			<input type="submit" class="btn btn-success" value="save changes"/>
+		</form>
+		</div>
+		<div>
+	<form action='{{url_for('deletePost', postID=post.id)}}' method="POST">
+	<p>Note: You can edit post info below, but you can't change the image/video once it's in the feed. If you'd like to do that, delete the post (bottom of this page) and post a new game shot. This makes it easier to ensure others don't have the game shot swapped out under them once they've already commented or upvoted, making a more honest feed.</p>
+	<input type="submit" class="btn btn-danger" value="delete post"/>
+	</form>
+		</div>
+</div>
+{% endblock %}
