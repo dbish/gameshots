@@ -292,7 +292,7 @@ def api_create_post():
             if 'completed' in request.form:
                 completed = True
             s3_link = uploadToS3(file)
-            createPost(username, file, game, comment, completed)
+            createPost(username, s3_link, game, comment, completed)
             return jsonify('post created')
         else:
             return jsonify('missing file')
@@ -1238,8 +1238,12 @@ def feed():
     screen_name = session[constants.PROFILE_KEY]['name']
     following = session[constants.PROFILE_KEY]['following']
     posts = getPosts(None)
+    if len(posts) > 0:
+        earliest = posts[-1].time
+    else:
+        earliest = 0
     postIDs = [post.id for post in posts]
-    return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=posts[-1].time, postIDs=postIDs, activePage='friendsNav')
+    return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=earliest, postIDs=postIDs, activePage='friendsNav')
 
 @requires_auth
 @app.route('/games')
