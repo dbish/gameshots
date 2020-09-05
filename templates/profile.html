@@ -55,14 +55,22 @@
 					<a href="{{url_for('viewPost', postid=post[0])}}"><i class="fa fa-share-square"></i></a>
 				</div>
 				{% if ('.twitch.tv' in post[1]) or ('.youtube.com' in post[1]) %}
-				<iframe class="card-img-top"
-				    src="{{post[1]}}"
-				    frameborder="0"
-				    scrolling="no"
-				    allowfullscreen="true">
-				</iframe>
+					{% if post[2]==1 %}
+					<iframe class="card-img-top border border-warning">
+					{% else %}
+					<iframe class="card-img-top">
+					{% endif %}
+					    src="{{post[1]}}"
+					    frameborder="0"
+					    scrolling="no"
+					    allowfullscreen="true">
+					</iframe>
 				{% elif ('.mp4' in post[1]) %}
+					{% if post[2]==1 %}
+					<video controls muted autoplay class="card-img-top border border-warning">
+					{% else %}
 					<video controls muted autoplay class="card-img-top">
+					{% endif %}
 					<source src="{{post[1]}}" type="video/mp4">
 					</video>
 				{%else %}
