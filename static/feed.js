@@ -46,12 +46,12 @@ function addNewPost(info){
 	}
 	profileHTML += '<a href="/gamer/'+info[0]+'">'+info[0]+'</a> <i class="fa fa-gamepad"></i> '
 	profileHTML += '<a href="/game/'+info[10]+'"><i>'+info[1]+'</i></a> ';
-	profileHTML += '<div class="link"><a href="/post/'+info[6]+'"><i class="fa fa-share-square"></a></div>';
+	profileHTML += '<div class="link"><a href="/post/'+info[6]+'"><i class="fa fa-share-square"></i></a></div>';
 
 	if (tags.length > 0){
 		profileHTML += '<div class="tags">&nbsp w/:';
 		for (i in tags){
-			 profileHTML += '<a href="/gamer/'+tag[i]+'" class="badge badge-pill badge-secondary">'+tags[i]+'</a>';
+			 profileHTML += '<a href="/gamer/'+tags[i]+'" class="badge badge-pill badge-secondary">'+tags[i]+'</a>';
 		}
 		profileHTML += '</div>'; 
 	}

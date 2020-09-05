@@ -60,6 +60,7 @@ function addNewPost(info){
         var pDisplay_name = info[11];
         var pUsername = info[0];
         var voted = info[9];
+        var tags = info[12];
 
 
         postIDs.add(info[6]);
@@ -78,7 +79,16 @@ function addNewPost(info){
         }
         profileHTML += '<a href="/gamer/'+info[0]+'">'+info[0]+'</a> <i class="fa fa-gamepad"></i> '
         profileHTML += '<a href="/game/'+info[10]+'"><i>'+info[1]+'</i></a> ';
-        profileHTML += '<div class="link"><a href="/post/'+info[6]+'"><i class="fa fa-share-square"></a></div>';
+        profileHTML += '<div class="link"><a href="/post/'+info[6]+'"><i class="fa fa-share-square"></i></a></div>';
+
+        if (tags.length > 0){
+                profileHTML += '<div class="tags">&nbsp w/:';
+                for (i in tags){
+                         profileHTML += '<a href="/gamer/'+tags[i]+'" class="badge badge-pill badge-secondary">'+tags[i]+'</a>';
+                }
+                profileHTML += '</div>';
+        }
+
         header.append(profileHTML);
 
         if (info[2].includes('.mp4')){
@@ -126,6 +136,5 @@ function addNewPost(info){
         inputHTML += 'postComment(\''+info[6]+'\', \''+username+'\')">';
         formBody.append(inputHTML);
         formBody.append('<button class="btn" onclick="postComment(\''+info[6]+'\', \''+username+'\')">post</button>');
-}
-
+}	
 
