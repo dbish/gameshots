@@ -1,4 +1,9 @@
 
+.commentsList{
+        max-height:150px;
+        overflow-y:auto;
+}
+
 
 iframe {
         min-height: 600px;
