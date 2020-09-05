@@ -7,3 +7,92 @@ iframe {
 }
 
 
+.mediaHolder{
+        width:100%;
+        height:100%;
+        background-color:black;
+}
+
+
+img, video, iframe, .card-img-top {
+        width: max-content;
+        max-width: 100%;
+        display:block;
+        margin: auto;
+}
+.commentsList{
+}
+
+
+iframe {
+        min-height: 600px;
+}
+
+
+.deleteButton {
+        margin:auto;
+        width:15%;
+}
+.mycomment {
+        background-color:#999999;
+        margin-bottom:5px;
+}
+
+.btn-sm {
+        margin-top:4px;
+}
+.card {
+        max-width: 900px;
+        margin: auto;
+        padding: 10px;
+        margin-bottom: 50px;
+}
+
+.link, .coins {
+        text-align:right;
+        float:right;
+        margin:0;
+}
+
+.coins {
+        color:white;
+}
+
+.more {
+        float:right;
+}
+
+.card-text {
+        margin-top: 5px;
+}
+
+.card-body {
+        border-top-style:solid;
+
+}
+
+.commentbox {
+        width: 100%;
+}
+
+
+.complete{
+        border-width: 10px !important;
+}
+
+
+li {
+        color:white;
+        list-style: none;
+}
+
+.editorial {
+        background-color:#00FFFF;
+        color:black;
+        margin-bottom:5px;
+}
+
+.card-header{
+        color:white;
+}
+

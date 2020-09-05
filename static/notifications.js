@@ -1,6 +1,6 @@
 var newNotifications = [];
 var allNotifications = new Set();
-var since = 0;
+var since = '0000-00-00 00:00:00';
 
 function longPoll() {
         var shouldDelay = false;

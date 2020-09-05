@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
 <link rel="stylesheet" href="{{url_for('static', filename='post.css')}}">
 <script src="{{url_for('static', filename='post.js')}}"></script>
         <script type="text/javascript">
@@ -35,6 +34,7 @@
                                 {% endif %}
                         </div>
 
+			<div class='mediaHolder'>
 
 			{% if ('.twitch.tv' in post.image) or ('.youtube.com' in post.image) %}
 			<iframe
@@ -50,6 +50,7 @@
 			{% else %}
 			<img src="{{post.image}}" class="card-img-top">
 			{% endif %}
+			</div>
 			<div class="card-body">
 				{% if screen_name is not none %}
 			        {% if post.voted %}

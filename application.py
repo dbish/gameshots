@@ -745,9 +745,15 @@ def viewGame(game):
 
     posts = getGamePosts(None, game)
 
+    following = session[constants.PROFILE_KEY]['following']
+    if len(posts) > 0:
+        earliest = posts[-1].time
+    else:
+        earliest = '0000-00-00 00:00:00' 
+    postIDs = [post.id for post in posts]
 
 
-    return render_template('game.html', posts=posts, image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=game,
+    return render_template('game.html', posts=posts, image_url=image_url, companies=companies, summary=summary, name=name, gameSlug=game, following=following, earliest=earliest, postIDs=postIDs,
             games_following=games_following, screen_name=username)
 
 @app.route('/gamer/<username>', methods=['GET', 'POST'])
@@ -893,8 +899,8 @@ def logout():
     params = {'returnTo': url_for('home', _external=True), 'client_id': AUTH0_CLIENT_ID}
     return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
 
-@requires_auth
 @app.route('/postComment', methods=['POST'])
+@requires_auth
 def postComment():
     username = session[constants.PROFILE_KEY]['name']
     text = request.form['text']
@@ -903,8 +909,8 @@ def postComment():
     
     return jsonify(commentID);
 
-@requires_auth
 @app.route('/deleteComment', methods=['POST'])
+@requires_auth
 def deleteComment():
     username = session[constants.PROFILE_KEY]['name']
     commentID = request.form['commentID']
@@ -928,8 +934,8 @@ def deleteComment():
         rds_con.close()
         return jsonify(result)
 
-@requires_auth
 @app.route('/upvote', methods=['POST'])
+@requires_auth
 def upvote():
     username = session[constants.PROFILE_KEY]['name']
     postID = request.form['postID']
@@ -966,8 +972,8 @@ def upvote():
     return jsonify('already voted')
 
 
-@requires_auth
 @app.route('/downvote', methods=['POST'])
+@requires_auth
 def downvote():
     username = session[constants.PROFILE_KEY]['name']
     postID = request.form['postID']
@@ -1000,8 +1006,8 @@ def downvote():
     return jsonify('cannot downvote something that was not upvoted')
 
 
-@requires_auth
 @app.route('/deletePost/<postID>', methods=['POST'])
+@requires_auth
 def deletePost(postID):
     username = session[constants.PROFILE_KEY]['name']
 
@@ -1057,8 +1063,8 @@ def getDisplayName(username, cachedNames):
     return cachedNames[username]
     
 
-@requires_auth
 @app.route('/follow', methods=['POST'])
+@requires_auth
 def followUser():
     username = session[constants.PROFILE_KEY]['name']
     follow = request.form['follow']
@@ -1140,8 +1146,8 @@ def unfollowUser():
             #remove from followers
             return jsonify('success')
 
-@requires_auth
 @app.route('/followGame', methods=['POST'])
+@requires_auth
 def followGame():
     username = session[constants.PROFILE_KEY]['name']
     follow = request.form['follow']
@@ -1162,8 +1168,8 @@ def followGame():
     return jsonify('success')
 
 
-@requires_auth
 @app.route('/unfollowGame', methods=['POST'])
+@requires_auth
 def unfollowGame():
     username = session[constants.PROFILE_KEY]['name']
     unfollow = request.form['unfollow']
@@ -1234,6 +1240,16 @@ def scrollGamesFeed():
     posts = getGamePosts(before, None)
     return jsonify(posts)
 
+@app.route('/scrollViewGameFeed', methods=['GET'])
+def scrollViewGameFeed():
+    print('scrolling')
+    before = request.args.get('before')
+    print(before)
+    game = request.args.get('game')
+    print(game)
+    posts = getGamePosts(before, game)
+    return jsonify(posts)
+
 def feed():
     screen_name = session[constants.PROFILE_KEY]['name']
     following = session[constants.PROFILE_KEY]['following']
@@ -1241,12 +1257,12 @@ def feed():
     if len(posts) > 0:
         earliest = posts[-1].time
     else:
-        earliest = 0
+        earliest = '0000-00-00 00:00:00' 
     postIDs = [post.id for post in posts]
     return render_template('feed.html', posts=posts, screen_name=screen_name, following=following, earliest=earliest, postIDs=postIDs, activePage='friendsNav')
 
-@requires_auth
 @app.route('/games')
+@requires_auth
 def gameFeed():
     screen_name = session[constants.PROFILE_KEY]['name']
     games_following = session[constants.PROFILE_KEY]['games_following']
@@ -1256,7 +1272,7 @@ def gameFeed():
         posts = getGamePosts(None, None)
         earliest = posts[-1].time
     else:
-        earliest = 0
+        earliest = '0000-00-00 00:00:00' 
     postIDs = [post.id for post in posts]
     return render_template('gameFeed.html', posts=posts, screen_name=screen_name, games_following=games_following, following=following, earliest=earliest, postIDs=postIDs, activePage='gamesNav')
 
@@ -1285,6 +1301,8 @@ def getGamePosts(before, game):
     try:
         with rds_con:
             cur = rds_con.cursor()
+            print(query)
+            print(games)
             cur.execute(query, tuple(games))
 
         for row in cur.fetchall():

@@ -3,6 +3,7 @@
 <link rel="stylesheet" href="{{url_for('static', filename='feed.css')}}">
 <script src="{{url_for('static', filename='post.js')}}"></script>
 <script src="{{url_for('static', filename='feed.js')}}"></script>
+<script src="{{url_for('static', filename='loadPosts.js')}}"></script>
 	<script type="text/javascript">
 		username = "{{screen_name}}";
 		earliestSeen = "{{earliest}}";
@@ -35,6 +36,7 @@
 				{% endif %}
 			</div>
 
+			<div class='mediaHolder'>
                         {% if ('.twitch.tv' in post.image) or ('.youtube.com' in post.image) %}
                         <iframe
                             src="{{post.image}}"
@@ -49,6 +51,7 @@
                         {% else %}
                         <img src="{{post.image}}" class="card-img-top">
                         {% endif %}
+			</div>
 
 			<div class="card-body">
 				{% if post.voted %}
