@@ -1,3 +1,7 @@
+.card {
+	vertical-align:center;
+}
+
 hr {
  	border:5px solid white;
 	border-radius: 2px; 
