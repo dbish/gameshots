@@ -4,6 +4,8 @@
 <script src="{{url_for('static', filename='viewProfile.js')}}"></script>
 <script type="text/javascript">
 	username = "{{screen_name}}";
+	earliestSeen = "{{earliest}}";
+	postIDs = new Set({{postIDs | tojson}});
 </script>
 
 <div class="container">
@@ -48,7 +50,7 @@
 
 	<div class="row" >
 		<div class="col">
-			<div class="row">
+			<div class="row" id="postsDiv">
 		{% for post in posts %}
 			<div class="card">
 				<div class='overlay'>

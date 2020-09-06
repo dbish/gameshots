@@ -633,8 +633,12 @@ def getUserGames(username):
 
     return games, completed_games 
 
-def getUserThumbnails(username):
-    query = f"SELECT postID, picture, completed FROM POSTS where user='{username}' ORDER BY createdtime DESC"
+def getUserThumbnails(username, before):
+    query = f"SELECT postID, picture, completed, createdtime FROM POSTS where user='{username}'"
+    if before:
+        query += f" AND createdtime <= '{before}'"
+    query += " ORDER BY createdtime DESC LIMIT 18"
+
     posts = []
 
     rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
@@ -647,7 +651,7 @@ def getUserThumbnails(username):
         rds_con.close()
 
     for row in cur.fetchall():
-        posts.append((row[0], row[1], row[2])) 
+        posts.append((row[0], row[1], row[2], row[3])) 
 
     return posts
 
@@ -773,14 +777,20 @@ def viewProfile(username):
             session[constants.PROFILE_KEY]['filtered_following'] = filtered_following 
             session.modified = True
         
-    posts = getUserThumbnails(username)
+    posts = getUserThumbnails(username, None)
+    if len(posts) > 0:
+        earliest = posts[-1][3]
+    else:
+        earliest = '0000-00-00 00:00:00' 
+    postIDs = [post[0] for post in posts]
     following = session[constants.PROFILE_KEY]['following']
     followers = session[constants.PROFILE_KEY]['followers']
     profile_following, profile_followers, *_ = getUserInfo(username, "placeholder")
     filtered_games = []
     if username in filtered_following:
         filtered_games = filtered_following[username]
-    return render_template('profile.html', screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games, filtered=filtered_games, display_name=getDisplayName(username, {})) 
+    
+    return render_template('profile.html', earliest=earliest, screen_name=myusername, username=username, games=games, posts=posts, following=following, followers=followers, myusername=myusername, profile_following=profile_following, profile_followers=profile_followers, completed_games=completed_games, filtered=filtered_games, display_name=getDisplayName(username, {}), postIDs=postIDs) 
 
 @app.route('/edit/<postid>', methods=['GET', 'POST'])
 @requires_auth
@@ -1226,6 +1236,12 @@ def getColor(name):
     value = ord(name[0])*len(name)
     return colors[value%len(colors)];
 
+@app.route('/scrollUserProfile', methods=['GET'])
+def scrollUserProfile():
+    user = request.args.get('user')
+    before = request.args.get('before')
+    posts = getUserThumbnails(user, before)
+    return jsonify(posts)
 
 @app.route('/scrollFeed', methods=['GET'])
 def scrollFeed():
@@ -1242,11 +1258,8 @@ def scrollGamesFeed():
 
 @app.route('/scrollViewGameFeed', methods=['GET'])
 def scrollViewGameFeed():
-    print('scrolling')
     before = request.args.get('before')
-    print(before)
     game = request.args.get('game')
-    print(game)
     posts = getGamePosts(before, game)
     return jsonify(posts)
 
@@ -1301,8 +1314,6 @@ def getGamePosts(before, game):
     try:
         with rds_con:
             cur = rds_con.cursor()
-            print(query)
-            print(games)
             cur.execute(query, tuple(games))
 
         for row in cur.fetchall():
