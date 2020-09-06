@@ -56,3 +56,8 @@ packages/
 *ncrunch*
 *crunch*.local.xml
 
+#appx
+AppPackages/
+BundleArtifacts/
+*.cer
+*.pfx
