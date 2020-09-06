@@ -9,7 +9,7 @@
   <Identity
     Name="d8909cc2-6bfe-4a73-b10f-ef94c41aaa02"
     Publisher="CN=Gameshots.gg, O=Gameshots Corporation, C=US"
-    Version="1.0.1.0" />
+    Version="1.0.3.0" />
 
   <Properties>
     <DisplayName>GameShotsMsix</DisplayName>
