@@ -89,3 +89,27 @@ $(window).scroll(function (){
         }
 });
 
+
+window.onload = function(){
+        $('#game').autocomplete({
+                source: function (request, response){
+                        $.ajax({
+                                url: "/autocompleteGames",
+                                dataType: "json",
+                                data: {
+                                        term: request.term
+                                },
+                                success: function(data){
+                                        response(data);
+                                }
+                        });
+
+                },
+                minLength: 2,
+                select: function(event, ui){
+                        console.log('selected:'+ui.item.value);
+                }
+        });
+
+};
+

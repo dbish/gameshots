@@ -88,17 +88,21 @@ h3 {
 .complete{
         border-width: 10px !important;
 }
+
+
+li {
+        color:white;
+        list-style: none;
+}
+
+
 .editorial {
-        background-color:#9146FF;
+        background-color:#00FFFF;
         margin-bottom:5px;
+	color:black;
 }
 
 .card-header{
         color:white;
-}
-
-.commentsList li {
-        color:white;
-        list-style: none;
 }
 

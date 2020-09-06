@@ -1,6 +1,18 @@
+.ui-autocomplete {
+	max-height: 200px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 20px;
+}
+
+.ui-front {
+    z-index: 9999999 !important;
+}
+
 hr {
- 	border:5px solid white;
 	border-radius: 2px; 
+	border-style: groove;
+	border-color: white;
 }
 
 .card {
@@ -21,10 +33,11 @@ hr {
 }
 
 #completedGames {
-	border:1px solid white;
-	border-radius: 5px;
-	color:white;
+	border-left: 10px solid #00FFFF;
 	padding:5px;
+	margin:10px;
+	background-color:lightgrey;
+	border-radius:0 5px 5px 0;
 }
 #completedGames ul {
 	list-style:none;
@@ -51,4 +64,14 @@ hr {
     color: #FFF;
     background-color: rgba(50, 50, 50, 0.3);
     z-index: 5;
+}
+
+#completedGameButton {
+	margin:0 auto;
+	display:block;
+	width:95%;
+}
+
+#emptyComment {
+	font-style: italic;
 }

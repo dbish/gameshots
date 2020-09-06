@@ -387,6 +387,17 @@ def markNotificationsRead():
     return jsonify('success')
 
 
+@app.route('/addCompletedGame', methods=['POST'])
+@requires_auth
+def addCompletedGame():
+    result = request.form
+    username = session[constants.PROFILE_KEY]['name']
+    game = result['game']
+    all_games, completed_games = getUserGames(username)
+    if game not in completed_games:
+        completion_note = f'mission accomplished. {game} was completed.'
+        postID = createPost(username, 'https://s3-us-west-2.amazonaws.com/gameshots.gg/complete.gif', game, completion_note, True)
+    return redirect(url_for('viewProfile', username=username))
 
 @app.route('/getNotifications')
 @requires_auth
@@ -635,6 +646,7 @@ def getUserGames(username):
 
 def getUserThumbnails(username, before):
     query = f"SELECT postID, picture, completed, createdtime FROM POSTS where user='{username}'"
+    query += " and length(picture) > 0"
     if before:
         query += f" AND createdtime <= '{before}'"
     query += " ORDER BY createdtime DESC LIMIT 18"
@@ -1306,6 +1318,7 @@ def getGamePosts(before, game):
     placeholders = ', '.join(placeholder for game in games)
 
     query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where slug in ({placeholders})"
+    query += " and length(picture) > 0"
     if before:
         query += f" AND createdtime <= '{before}'"
     query += " ORDER BY createdtime DESC LIMIT 10"
@@ -1386,11 +1399,13 @@ def getPosts(before):
             allParams.append(user)
             allParams.extend(filtered_games)
             query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user=%s and game not in ({placeholders})"
+            query += " and length(picture) > 0"
             query += "\n UNION \n"
 
     placeholders = ', '.join(placeholder for user in users)
     allParams.extend(users)
     query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders})"
+    query += " and length(picture) > 0"
     if before:
         query += f" AND createdtime <= '{before}'"
     query += " ORDER BY createdtime DESC LIMIT 10"
