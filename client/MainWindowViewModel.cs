@@ -215,6 +215,10 @@ namespace GGShot
                     m_settings.AccessToken = loginResult.AccessToken;
                     m_settings.Save();
                 }
+                else
+                {
+                    MessageBox.Show("Error while logging in: " + loginResult.Error);
+                }
             }
 
             LoadCredentialsFromStore();
