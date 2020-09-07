@@ -199,7 +199,7 @@ namespace GGShot
             clientOptions.PostLogoutRedirectUri = clientOptions.RedirectUri;
             
             var extraParameters = new Dictionary<string, string>();
-            extraParameters.Add("audience", "https://gameshots.gg/api");
+            extraParameters.Add("audience", "http://gameshots.gg/api");
 
             if (m_settings.TokenExpiration < DateTime.UtcNow)
             {
