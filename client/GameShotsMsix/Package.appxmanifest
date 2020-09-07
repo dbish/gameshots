@@ -9,11 +9,11 @@
   <Identity
     Name="d8909cc2-6bfe-4a73-b10f-ef94c41aaa02"
     Publisher="CN=Gameshots.gg, O=Gameshots Corporation, C=US"
-    Version="1.0.3.0" />
+    Version="1.0.8.0" />
 
   <Properties>
     <DisplayName>GameShotsMsix</DisplayName>
-    <PublisherDisplayName>timmi</PublisherDisplayName>
+    <PublisherDisplayName>GameShots.gg</PublisherDisplayName>
     <Logo>Images\StoreLogo.png</Logo>
   </Properties>
 
@@ -32,7 +32,7 @@
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
         DisplayName="GameShotsMsix"
-        Description="GameShotsMsix"
+        Description="GameShots"
         BackgroundColor="transparent"
         Square150x150Logo="Images\Square150x150Logo.png"
         Square44x44Logo="Images\Square44x44Logo.png">

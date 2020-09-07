@@ -118,7 +118,7 @@
     <PackageReference Include="Auth0.OidcClient.WPF">
       <Version>3.1.7</Version>
     </PackageReference>
-    <PackageReference Include="FFmpeg.Win64.Static">
+    <PackageReference Include="FFmpeg.Win64.Static" GeneratePathProperty="true">
       <Version>4.1.1.1</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
@@ -134,5 +134,14 @@
       <Version>4.1.1</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="ffmpeg\ffmpeg.exe" />
+  </ItemGroup>
+  <Target Name="CopyFFmpegToSrc" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <FilesToCopy Include="$(PkgFFmpeg_Win64_Static)\ffmpeg\ffmpeg.exe" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="ffmpeg" SkipUnchangedFiles="true" />
+  </Target>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
