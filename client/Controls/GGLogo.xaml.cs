@@ -28,7 +28,7 @@ namespace GGShot.Controls
 
         private void Image_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            Process.Start("http://gameshots.gg");
+            Process.Start("https://gameshots.gg");
         }
     }
 }

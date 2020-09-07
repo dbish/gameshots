@@ -59,7 +59,7 @@ namespace GGShot
         {
             if (IsLoggedIn)
             {
-                Process.Start($"http://gameshots.gg/gamer/{UserName}");
+                Process.Start($"https://gameshots.gg/gamer/{UserName}");
             }
             else
             {
@@ -132,7 +132,7 @@ namespace GGShot
 
                     var fileContent = new ByteArrayContent(bytes);
                     client.DefaultRequestHeaders.Add("authorization", "Bearer " + m_settings.AccessToken);
-                    var response = await client.PostAsync("http://gameshots.gg/api/createPost", new MultipartFormDataContent()
+                    var response = await client.PostAsync("https://gameshots.gg/api/createPost", new MultipartFormDataContent()
                     //var response = await client.PostAsync("http://ec2-54-188-110-37.us-west-2.compute.amazonaws.com/api/createPost ", new MultipartFormDataContent()
                     {
                         {fileContent, "file", Path.GetFileName(imagePath)},
@@ -194,12 +194,12 @@ namespace GGShot
             {
                 Domain = "gameshots.us.auth0.com",
                 ClientId = "oL1BF2g684pdiJLMw80vwZqeNoPony18",
-                RedirectUri = "http://gameshots.gg/callback",
+                RedirectUri = "https://gameshots.gg/callback",
             };
             clientOptions.PostLogoutRedirectUri = clientOptions.RedirectUri;
             
             var extraParameters = new Dictionary<string, string>();
-            extraParameters.Add("audience", "http://gameshots.gg/api");
+            extraParameters.Add("audience", "https://gameshots.gg/api");
 
             if (m_settings.TokenExpiration < DateTime.UtcNow)
             {
@@ -214,6 +214,10 @@ namespace GGShot
                     m_settings.UserName = loginResult.User.Identity.Name;
                     m_settings.AccessToken = loginResult.AccessToken;
                     m_settings.Save();
+                }
+                else
+                {
+                    MessageBox.Show("Error while logging in: " + loginResult.Error);
                 }
             }
 
