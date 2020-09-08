@@ -143,6 +143,21 @@ aws_session = boto3.Session(
 )
 
 
+def userExists(username):
+    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('gg_users');
+    response = table.get_item(
+            Key={
+                'username':username
+                }
+            )
+    
+    if 'Item' in response:
+        return True
+    else:
+        return False
+
+
 def getUserInfo(username, email):
     dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
     following = []
@@ -184,7 +199,7 @@ def getUserInfo(username, email):
                     }
                 )
         addUserToIndex(username, '')
-        flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)')
+        flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)', 'success')
     return following, followers, voted, filtered_following, display_name, games_following
 
 def addUserToIndex(username, displayname):
@@ -544,7 +559,7 @@ def settings():
         else:
             display_name = username
     
-    return render_template('settings.html', username=username, display_name=display_name)
+    return render_template('settings.html', username=username, display_name=display_name, screen_name=username)
     
 def allowed_file(filename):
     allowed_extensions = PIC_FILE_TYPES|MOV_FILE_TYPES
@@ -562,7 +577,7 @@ def create():
         if request.form['option'] == 'media':
             file = request.files['file']
             if file.filename == '':
-                flash('no selected file')
+                flash('no selected file', 'danger')
                 return redirect(url_for('create'))
             if file and allowed_file(file.filename):
                 link = uploadToS3(file)
@@ -593,7 +608,7 @@ def create():
             if len(tags) > 0:
                 createTags(postID, tags) 
         return redirect(url_for('home'))
-    return render_template('create.html')
+    return render_template('create.html', screen_name=username)
 
 @app.route('/callback')
 def callback_handling():
@@ -775,6 +790,9 @@ def viewGame(game):
 @app.route('/gamer/<username>', methods=['GET', 'POST'])
 @requires_auth
 def viewProfile(username):
+    if not userExists(username):
+        flash('Sorry, that user does not exist and may be a figment of your imagination. Use the search in the nav bar to find real people.', 'danger')
+        return redirect(url_for('home'))
     games, completed_games = getUserGames(username)
     filtered_following = session[constants.PROFILE_KEY]['filtered_following']
     myusername = session[constants.PROFILE_KEY]['name']
