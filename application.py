@@ -17,6 +17,8 @@ from six.moves.urllib.request import urlopen
 import json
 import requests
 import string
+from db_manager import *
+from post import *
 
 AUTH0_CALLBACK_URL = constants.AUTH0_CALLBACK_URL
 AUTH0_CLIENT_ID = constants.AUTH0_CLIENT_ID
@@ -37,8 +39,6 @@ app.config.update(dict(
   PREFERRED_URL_SCHEME = 'https'
 ))
 
-Post = collections.namedtuple("Post", ['username', 'game', 'image', 'editorial', 'coins', 'time', 'id', 'comments', 'completed', 'voted', 'gameSlug', 'display_name', 'tags'])
-Comment = collections.namedtuple("Comment", ['username', 'text', 'time', 'id', 'color', 'display_name'])
 Notification = collections.namedtuple("Notification", ['id', 'username', 'link', 'info', 'timestamp', 'read'])
 
 UPLOAD_FOLDER = "/tmp"
@@ -141,66 +141,6 @@ aws_session = boto3.Session(
     aws_access_key_id = constants.AWS_PUBLIC_KEY,
     aws_secret_access_key = constants.AWS_SERVER_SECRET_KEY
 )
-
-
-def userExists(username):
-    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
-    table = dynamodb.Table('gg_users');
-    response = table.get_item(
-            Key={
-                'username':username
-                }
-            )
-    
-    if 'Item' in response:
-        return True
-    else:
-        return False
-
-
-def getUserInfo(username, email):
-    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
-    following = []
-    followers = []
-    games_following = []
-    voted = []
-    display_name = ''
-    filtered_following = []
-    table = dynamodb.Table('gg_users');
-    response = table.get_item(
-            Key={
-                'username':username
-                }
-            )
-
-    if 'Item' in response:
-        if 'display_name' in response['Item']:
-            display_name = response['Item']['display_name']
-        if 'following' in response['Item']:
-            following = response['Item']['following']
-        if 'followers' in response['Item']:
-            followers = response['Item']['followers']
-        if 'voted' in response['Item']:
-            voted = response['Item']['voted']
-        if 'filtered_following' in response['Item']:
-            filtered_following = response['Item']['filtered_following']
-        if 'games_following' in response['Item']:
-            games_following = response['Item']['games_following']
-    else:
-        response = table.put_item(
-                Item={
-                    'username':username,
-                    'email':email,
-                    'following':[],
-                    'filtered_following':{},
-                    'games_following':{},
-                    'followers':[],
-                    'voted':[]
-                    }
-                )
-        addUserToIndex(username, '')
-        flash('Welcome! New gameshots account created. Find some friends and share some great game memories :)', 'success')
-    return following, followers, voted, filtered_following, display_name, games_following
 
 def addUserToIndex(username, displayname):
     cloudsearch = aws_session.client('cloudsearchdomain', endpoint_url='http://doc-gg-test-6bwc55aehpsty6w5qfiv4pbsmy.us-west-2.cloudsearch.amazonaws.com', region_name='us-west-2')
@@ -335,54 +275,6 @@ def autoCompleteTag():
     tag_suggestions = [user['fields']['username'][0] for user in tag_suggestions]
     return jsonify(tag_suggestions)
 
-def createComment(user, text, postID):
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    commentID = str(uuid.uuid4())
-
-    query = f"INSERT INTO COMMENTS (commentID, user, postID, text) VALUES (%s, %s, %s, %s)"
-
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query, (commentID, user, postID, text))
-        rds_con.commit()
-    except e:
-        print(e)
-
-    
-    try: 
-        query = f"SELECT user from POSTS where postID='{postID}'"
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query)
-        postOwner = cur.fetchone()[0]
-
-        
-        if user != postOwner:
-            addNotification(postOwner, url_for('viewPost', postid=postID), f"{user} commented on your post")
-    except e:
-        print(e)
-
-    rds_con.close()
-
-    return commentID
-
-def addNotification(user, link, info):
-    notificationID = str(uuid.uuid4())
-    query = f"INSERT INTO NOTIFICATIONS (ID, user, link, info) VALUES (%s,%s,%s,%s)"
-
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            vals = (notificationID, user, link, info)
-            cur.execute(query, vals) 
-        rds_con.commit()
-    except e:
-        print(e)
-    finally:
-        rds_con.close()
-    
 @app.route('/markNotificationsRead', methods=['POST'])
 @requires_auth
 def markNotificationsRead():
@@ -424,36 +316,6 @@ def getNotifications():
     return jsonify(notifications) 
 
 
-def getNewNotifications(user, timestamp):
-    query = f"SELECT ID, link, info, createdtime, read_state FROM NOTIFICATIONS where user='{user}' and createdtime > '{timestamp}' ORDER BY createdtime DESC limit 100"
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query)
-    finally:
-        rds_con.close()
-
-    notifications = cur.fetchall() 
-    return notifications
-
-def createTags(postID, tags):
-    query = f"INSERT INTO Tags (postID, user) VALUES (%s,%s)"
-    tags = list(set(tags))
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            for tag in tags:
-                vals = (postID, tag) 
-                cur.execute(query, vals) 
-                addNotification(tag, url_for('viewPost', postid=postID), f"you were tagged in a post!")
-        rds_con.commit()
-    finally:
-        rds_con.close()
-
-
-
 def uploadToS3(picture):
     s3 = aws_session.resource('s3')
     bucket = s3.Bucket('gameshots.gg')
@@ -465,66 +327,6 @@ def uploadToS3(picture):
     bucket.upload_fileobj(picture, filename, ExtraArgs={'ACL':'public-read'})
     link = f'https://s3-us-west-2.amazonaws.com/gameshots.gg/{filename}'
     return link
-
-
-def updatePost(postID, game, info, completed, cur_tags, old_tags):
-    slug = createSlug(game)
-    query = f"UPDATE POSTS SET game=%s, info=%s, completed=%s where postID='{postID}'"
-    deleted_tags = old_tags.difference(cur_tags) 
-    added_tags = cur_tags.difference(old_tags)
-    comp_val = 0
-    if completed:
-        comp_val = 1
-
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            vals = (game, info, comp_val)
-            cur.execute(query, vals)
-
-            if len(deleted_tags) > 0:
-                placeholder = '%s'
-                placeholders = ', '.join(placeholder for tag in deleted_tags)
-                query = f"DELETE from Tags where postID='{postID}' and user in ({placeholders})"
-                cur.execute(query, list(deleted_tags))
-
-            if len(added_tags) > 0:
-                query = f"INSERT INTO Tags (postID, user) VALUES (%s,%s)"
-                for tag in added_tags:
-                    vals = (postID, tag) 
-                    cur.execute(query, vals) 
-                    addNotification(tag, url_for('viewPost', postid=postID), f"you were tagged in a post!")
-
-
-        rds_con.commit()
-    finally:
-        rds_con.close()
-
-    
-
-
-
-def createPost(user, link, game, info, completed):
-    postID = str(uuid.uuid4())
-    slug = createSlug(game)
-    comp_val = 0
-    query = f"INSERT INTO POSTS (postID, user, picture, game, info, completed, slug) VALUES (%s,%s,%s,%s,%s,%s,%s)"
-    if completed:
-        comp_val = 1
-
-    
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            vals = (postID, user, link, game, info, comp_val, slug)
-            cur.execute(query, vals) 
-        rds_con.commit()
-    finally:
-        rds_con.close()
-
-    return postID
 
 @app.route('/settings', methods=['POST', 'GET'])
 @requires_auth
@@ -632,56 +434,6 @@ def callback_handling():
     }
     return redirect('/')
 
-def getUserGames(username):
-    query = f"SELECT DISTINCT game FROM POSTS where user='{username}'"
-    games = []
-
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query)
-
-        game_info = cur.fetchall()
-        games = [game[0] for game in game_info]
-
-        query = f"SELECT DISTINCT game FROM POSTS where user='{username}' and completed=1"
-
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query)
-    finally:
-        rds_con.close()
-
-    completed_games = cur.fetchall() 
-    completed_games = [game[0] for game in completed_games]
-
-    return games, completed_games 
-
-def getUserThumbnails(username, before):
-    query = f"SELECT postID, picture, completed, createdtime FROM POSTS where user='{username}'"
-    query += " and length(picture) > 0"
-    if before:
-        query += f" AND createdtime <= '{before}'"
-    query += " ORDER BY createdtime DESC LIMIT 18"
-
-    posts = []
-
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query)
-    finally:
-        rds_con.close()
-
-    for row in cur.fetchall():
-        posts.append((row[0], row[1], row[2], row[3])) 
-
-    return posts
-
 @app.route('/findGame', methods=['POST'])
 @requires_auth
 def findGame():
@@ -744,6 +496,9 @@ def getCoverID(gameSlug):
 def viewGame(game):
     games_following = session[constants.PROFILE_KEY]['games_following']
     username = session[constants.PROFILE_KEY]['name']
+    following = session[constants.PROFILE_KEY]['following']
+    voted = session[constants.PROFILE_KEY]['voted']
+
     #games_following = session[constants.PROFILE_KEY]['games_following']
     try:
         url = 'https://api-v3.igdb.com/games/'
@@ -774,7 +529,7 @@ def viewGame(game):
         summary = 'this game does not show up in our database'
         name = game
 
-    posts = getGamePosts(None, game)
+    posts = getGamePosts(None, game, username, following, voted, games_following)
 
     following = session[constants.PROFILE_KEY]['following']
     if len(posts) > 0:
@@ -1070,39 +825,6 @@ def deletePost(postID):
     return redirect(url_for('home'))
 
 
-def updateFilter(username, following, games, curFilter):
-    dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
-    table = dynamodb.Table('gg_users');
-    response = table.update_item(
-            Key = {
-                'username':username
-                },
-            UpdateExpression="SET filtered_following.#f = :v",
-            ExpressionAttributeNames = {'#f':following},
-            ExpressionAttributeValues={
-                ':v':games,
-            }
-            )
-    curFilter[following] = games
-    return curFilter
-
-
-
-def getDisplayName(username, cachedNames):
-    if username not in cachedNames:
-        dynamodb = aws_session.resource('dynamodb', region_name='us-west-2')
-        table = dynamodb.Table('gg_users');
-        display_name = username
-        response = table.get_item(
-                Key={'username':username},
-                AttributesToGet=['display_name'])
-        if 'Item' in response:
-            if 'display_name' in response['Item']:
-                display_name = response['Item']['display_name']
-        cachedNames[username] = display_name
-    return cachedNames[username]
-    
-
 @app.route('/follow', methods=['POST'])
 @requires_auth
 def followUser():
@@ -1259,13 +981,6 @@ def home():
     else:
         return feed()
 
-def getColor(name):
-    colors  = ['Aqua', 'Aquamarine', 'Blue', 'BlueViolet', 'Chartreuse', 'Coral', 'CornflowerBlue', 'Crimson',
-        'Cyan', 'DarkMagenta', 'DarkOrange', 'Fuchsia', 'ForestGreen', 'Gold', 'GreenYellow',
-        'HotPink', 'Lavender', 'LawnGreen', 'Lime', 'Magenta', 'MediumSpringGreen', 'Red', 'RoyalBlue', 'Yellow']
-    value = ord(name[0])*len(name)
-    return colors[value%len(colors)];
-
 @app.route('/scrollUserProfile', methods=['GET'])
 def scrollUserProfile():
     user = request.args.get('user')
@@ -1275,28 +990,46 @@ def scrollUserProfile():
 
 @app.route('/scrollFeed', methods=['GET'])
 def scrollFeed():
+    screen_name = session[constants.PROFILE_KEY]['name']
+    email = session[constants.PROFILE_KEY]['email']
+    following = session[constants.PROFILE_KEY]['following']
+    filtered_following = session[constants.PROFILE_KEY]['filtered_following']
+    voted = session[constants.PROFILE_KEY]['voted']
+
     before = request.args.get('before')
-    posts = getPosts(before)
+    posts = getPosts(before, screen_name, email, following, filtered_following, voted)
     return jsonify(posts)
     
 
 @app.route('/scrollGamesFeed', methods=['GET'])
 def scrollGamesFeed():
+    screen_name = session[constants.PROFILE_KEY]['name']
+    following = session[constants.PROFILE_KEY]['following']
+    voted = session[constants.PROFILE_KEY]['voted']
+    games_following = session[constants.PROFILE_KEY]['games_following']
+
     before = request.args.get('before')
-    posts = getGamePosts(before, None)
+    posts = getGamePosts(before, None, screen_name, following, voted, games_following)
     return jsonify(posts)
 
 @app.route('/scrollViewGameFeed', methods=['GET'])
 def scrollViewGameFeed():
+    screen_name = session[constants.PROFILE_KEY]['name']
+    following = session[constants.PROFILE_KEY]['following']
+    voted = session[constants.PROFILE_KEY]['voted']
+    games_following = session[constants.PROFILE_KEY]['games_following']
     before = request.args.get('before')
     game = request.args.get('game')
-    posts = getGamePosts(before, game)
+    posts = getGamePosts(before, game, screen_name, following, voted, games_following)
     return jsonify(posts)
 
 def feed():
     screen_name = session[constants.PROFILE_KEY]['name']
     following = session[constants.PROFILE_KEY]['following']
-    posts = getPosts(None)
+    filtered_following = session[constants.PROFILE_KEY]['filtered_following']
+    email = session[constants.PROFILE_KEY]['email']
+    voted = session[constants.PROFILE_KEY]['voted']
+    posts = getPosts(None, screen_name, email, following, filtered_following, voted)
     if len(posts) > 0:
         earliest = posts[-1].time
     else:
@@ -1310,169 +1043,15 @@ def gameFeed():
     screen_name = session[constants.PROFILE_KEY]['name']
     games_following = session[constants.PROFILE_KEY]['games_following']
     following = session[constants.PROFILE_KEY]['following']
+    voted = session[constants.PROFILE_KEY]['voted']
     posts = []
     if len(games_following) > 0:
-        posts = getGamePosts(None, None)
+        posts = getGamePosts(None, None, screen_name, following, voted, games_following)
         earliest = posts[-1].time
     else:
         earliest = '0000-00-00 00:00:00' 
     postIDs = [post.id for post in posts]
     return render_template('gameFeed.html', posts=posts, screen_name=screen_name, games_following=games_following, following=following, earliest=earliest, postIDs=postIDs, activePage='gamesNav')
-
-
-
-def getGamePosts(before, game):
-    posts = []
-    displayNames = {}
-    postRefs = {}
-    screen_name = session[constants.PROFILE_KEY]['name']
-    following = session[constants.PROFILE_KEY]['following']
-    voted = session[constants.PROFILE_KEY]['voted']
-    if game is None:
-        games = session[constants.PROFILE_KEY]['games_following']
-    else:
-        games = [game]
-    placeholder = '%s'
-    placeholders = ', '.join(placeholder for game in games)
-
-    query = f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where slug in ({placeholders})"
-    query += " and length(picture) > 0"
-    if before:
-        query += f" AND createdtime <= '{before}'"
-    query += " ORDER BY createdtime DESC LIMIT 10"
-
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query, tuple(games))
-
-        for row in cur.fetchall():
-            postID = row[0]
-            game = row[3]
-            user = row[1]
-            display_name = getDisplayName(user, displayNames)
-            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name, [])
-            postRefs[postID] = newPost 
-            posts.append(newPost)
-
-
-        if len(posts) > 0:
-            placeholder = '%s'
-            placeholders = ', '.join(placeholder for postID in postRefs.keys())
-            query = f"SELECT postID, commentID, user, text, createdtime FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
-
-            with rds_con:
-                cur = rds_con.cursor()
-                cur.execute(query, tuple(postRefs.keys()))
-
-            for row in cur.fetchall():
-                postID = row[0]
-                user = row[2]
-                display_name = getDisplayName(user, displayNames)
-                comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]), display_name)
-                postRefs[postID].comments.append(comment)
-
-            query = f"SELECT postID, user FROM Tags where postID in ({placeholders})"
-
-            with rds_con:
-                cur = rds_con.cursor()
-                cur.execute(query, tuple(postRefs.keys()))
-
-            for row in cur.fetchall():
-                postID = row[0]
-                user = row[1]
-                postRefs[postID].tags.append(user)
-
-    finally:
-        rds_con.close()
-
-    return posts
-
-
-
-    
-
-
-def getPosts(before):
-    posts = []
-    postRefs = {}
-    screen_name = session[constants.PROFILE_KEY]['name']
-    email = session[constants.PROFILE_KEY]['email']
-    following = session[constants.PROFILE_KEY]['following']
-    filtered_following = session[constants.PROFILE_KEY]['filtered_following']
-    voted = session[constants.PROFILE_KEY]['voted']
-    users = following+[screen_name]
-    placeholder = '%s'
-    allParams = []
-
-    displayNames = {}
-    #filtered users
-    query = ''
-    for user in filtered_following:
-        filtered_games = filtered_following[user]
-        if len(filtered_games) > 0:
-            users.remove(user)
-            placeholders = ', '.join(placeholder for game in filtered_games)
-            allParams.append(user)
-            allParams.extend(filtered_games)
-            query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user=%s and game not in ({placeholders})"
-            query += " and length(picture) > 0"
-            query += "\n UNION \n"
-
-    placeholders = ', '.join(placeholder for user in users)
-    allParams.extend(users)
-    query += f"SELECT postID, user, picture, game, info, createdtime, completed, coins FROM POSTS where user in ({placeholders})"
-    query += " and length(picture) > 0"
-    if before:
-        query += f" AND createdtime <= '{before}'"
-    query += " ORDER BY createdtime DESC LIMIT 10"
-
-    rds_con = pymysql.connect(constants.rds_host, user=constants.rds_user, port=constants.rds_port, passwd=constants.rds_password, db=constants.rds_dbname)
-    try:
-        with rds_con:
-            cur = rds_con.cursor()
-            cur.execute(query, tuple(allParams))
-
-        for row in cur.fetchall():
-            postID = row[0]
-            game = row[3]
-            user = row[1]
-            display_name = getDisplayName(user, displayNames)
-            newPost = Post(user, game, row[2], row[4], row[7], row[5].strftime("%Y-%m-%d %H:%M:%S"), postID, [], row[6], (postID in voted), createSlug(game), display_name, [])
-            postRefs[postID] = newPost 
-            posts.append(newPost)
-
-
-        if len(posts) > 0:
-            placeholder = '%s'
-            placeholders = ', '.join(placeholder for postID in postRefs.keys())
-            query = f"SELECT postID, commentID, user, text, createdtime FROM COMMENTS where postID in ({placeholders}) ORDER BY createdtime ASC"
-            with rds_con:
-                cur = rds_con.cursor()
-                cur.execute(query, tuple(postRefs.keys()))
-
-            for row in cur.fetchall():
-                postID = row[0]
-                user = row[2]
-                display_name = getDisplayName(user, displayNames)
-                comment = Comment(row[2], row[3], row[4], row[1], getColor(row[2]), display_name)
-                postRefs[postID].comments.append(comment)
-
-            query = f"SELECT postID, user FROM Tags where postID in ({placeholders})"
-
-            with rds_con:
-                cur = rds_con.cursor()
-                cur.execute(query, tuple(postRefs.keys()))
-
-            for row in cur.fetchall():
-                postID = row[0]
-                user = row[1]
-                postRefs[postID].tags.append(user)
-    finally:
-        rds_con.close()
-
-    return posts
 
 if __name__=='__main__':
     #application.run(host='0.0.0.0', port='80', debug=True)
